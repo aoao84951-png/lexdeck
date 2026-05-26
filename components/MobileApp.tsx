@@ -826,27 +826,27 @@ function MobileHeader({
   }) {
     if (chapterMode) {
         return (
-          <header>
-            <div className="flex items-center justify-between">
-                <p
-                    className="text-[12px] font-semibold tracking-[0.34em] text-[#a3abb8]"
-                    style={{
-                    transform: showBack ? "translateX(3px)" : "translateX(1px)",
-                    }}
+            <header>
+            <div className="flex h-4 items-center justify-between">
+              <p
+                className="text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
+                style={{
+                  transform: showBack ? "translateX(3px)" : "translateX(1px)",
+                }}
+              >
+                {eyebrow}
+              </p>
+          
+              {onHome && (
+                <button
+                  onClick={onHome}
+                  className="flex h-4 w-4 items-center justify-center text-[#a3abb8] active:scale-95"
+                  aria-label="홈"
                 >
-                    {eyebrow}
-                </p>
-
-                {onHome && (
-                    <button
-                    onClick={onHome}
-                    className="flex h-7 w-7 items-center justify-center text-[#8a94a6] active:scale-95"
-                    aria-label="홈"
-                    >
-                    <HomeIcon size={14} />
-                    </button>
-                )}
-                </div>
+                  <HomeIcon size={12} />
+                </button>
+              )}
+            </div>
       
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-0">
@@ -882,14 +882,26 @@ function MobileHeader({
   
       return (
         <header>
-          <p
-            className="text-[12px] font-semibold tracking-[0.34em] text-[#a3abb8]"
-            style={{
+          <div className="flex h-4 items-center justify-between">
+            <p
+                className="text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
+                style={{
                 transform: showBack ? "translateX(3px)" : "translateX(1px)",
-            }}
+                }}
             >
-            {eyebrow}
-          </p>
+                {eyebrow}
+            </p>
+
+            {onHome && (
+                <button
+                onClick={onHome}
+                className="flex h-4 w-4 items-center justify-center text-[#a3abb8] active:scale-95"
+                aria-label="홈"
+                >
+                <HomeIcon size={12} />
+                </button>
+            )}
+            </div>
         <div className="mt-3 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             {showBack && (
@@ -915,15 +927,6 @@ function MobileHeader({
           </div>
   
           <div className="flex shrink-0 items-center gap-0.5">
-          {onHome && (
-            <button
-                onClick={onHome}
-                className="flex h-8 w-8 translate-y-[3px] items-center justify-center text-[#8a94a6] active:scale-95"
-                aria-label="홈"
-            >
-                <HomeIcon />
-            </button>
-            )}
           {addLabel && (
             <button
                 onClick={onAdd}
@@ -2249,7 +2252,7 @@ function ChapterActionSheet({
     );
   }
 
-  function HomeIcon({ size = 17 }: { size?: number }) {
+  function HomeIcon({ size = 12 }: { size?: number }) {
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
