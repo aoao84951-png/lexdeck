@@ -32,6 +32,8 @@ type Question = {
 
 const uid = () => crypto.randomUUID();
 
+const STATE_STORAGE_KEY = "lexdeck-ox-state-v1";
+
 const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
@@ -116,7 +118,49 @@ export default function MobileApp() {
 
   const [isStandalone, setIsStandalone] = useState(false);
 
-const loadedRef = useRef(false);
+  const loadedRef = useRef(false);
+
+useEffect(() => {
+  const savedState = sessionStorage.getItem(STATE_STORAGE_KEY);
+  if (!savedState) return;
+
+  try {
+    const parsed = JSON.parse(savedState);
+
+    setScreen(parsed.screen || "subjects");
+    setSubjectId(parsed.subjectId || "");
+    setChapterId(parsed.chapterId || "");
+    setQuestionId(parsed.questionId || "");
+    setShowAnswer(parsed.showAnswer || false);
+    setSearch(parsed.search || "");
+    setExpandedIds(parsed.expandedIds || []);
+  } catch {
+    sessionStorage.removeItem(STATE_STORAGE_KEY);
+  }
+}, []);
+
+useEffect(() => {
+  sessionStorage.setItem(
+    STATE_STORAGE_KEY,
+    JSON.stringify({
+      screen,
+      subjectId,
+      chapterId,
+      questionId,
+      showAnswer,
+      search,
+      expandedIds,
+    })
+  );
+}, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds]);
+
+useEffect(() => {
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  setIsStandalone(standalone);
+}, []);
 
 useEffect(() => {
   const loadData = async () => {
@@ -145,18 +189,6 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-
-    const standalone =
-  
-      window.matchMedia("(display-mode: standalone)").matches ||
-  
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-  
-    setIsStandalone(standalone);
-  
-  }, []);
-
-useEffect(() => {
   if (!loadedRef.current) return;
 
   const save = async () => {
@@ -175,16 +207,12 @@ useEffect(() => {
     if (existing?.id) {
       await supabase
         .from("ox_data")
-        .update({
-          data: payload,
-        })
+        .update({ data: payload })
         .eq("id", existing.id);
     } else {
       await supabase
         .from("ox_data")
-        .insert({
-          data: payload,
-        });
+        .insert({ data: payload });
     }
   };
 
@@ -395,6 +423,16 @@ useEffect(() => {
     setFormOpen(true);
   };
 
+  const goHome = () => {
+    setScreen("subjects");
+    setSubjectId("");
+    setChapterId("");
+    setQuestionId("");
+    setShowAnswer(false);
+    setSearch("");
+    setExpandedIds([]);
+  };
+
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
     if (!confirm("이 문제를 삭제할까?")) return;
@@ -445,6 +483,7 @@ useEffect(() => {
         <MobileHeader
           chapterMode={screen === "chapters"}
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
+          onHome={screen !== "subjects" ? goHome : undefined}
           eyebrow={
             screen === "subjects"
               ? "LEXDECK"
@@ -770,6 +809,7 @@ function MobileHeader({
     onAdd,
     addLabel,
     onDelete,
+    onHome,
     chapterMode = false,
     screenTitleFix = false,
   }: {
@@ -780,20 +820,33 @@ function MobileHeader({
     onAdd: () => void;
     addLabel: string;
     onDelete?: () => void;
+    onHome?: () => void;
     chapterMode?: boolean;
     screenTitleFix?: boolean;
   }) {
     if (chapterMode) {
         return (
           <header>
-            <p
-              className="text-[12px] font-semibold tracking-[0.34em] text-[#a3abb8]"
-              style={{
-                transform: showBack ? "translateX(3px)" : "translateX(1px)",
-              }}
-            >
-              {eyebrow}
-            </p>
+            <div className="flex items-center justify-between">
+                <p
+                    className="text-[12px] font-semibold tracking-[0.34em] text-[#a3abb8]"
+                    style={{
+                    transform: showBack ? "translateX(3px)" : "translateX(1px)",
+                    }}
+                >
+                    {eyebrow}
+                </p>
+
+                {onHome && (
+                    <button
+                    onClick={onHome}
+                    className="flex h-7 w-7 items-center justify-center text-[#8a94a6] active:scale-95"
+                    aria-label="홈"
+                    >
+                    <HomeIcon size={14} />
+                    </button>
+                )}
+                </div>
       
             <div className="mt-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-0">
@@ -862,6 +915,15 @@ function MobileHeader({
           </div>
   
           <div className="flex shrink-0 items-center gap-0.5">
+          {onHome && (
+            <button
+                onClick={onHome}
+                className="flex h-8 w-8 translate-y-[3px] items-center justify-center text-[#8a94a6] active:scale-95"
+                aria-label="홈"
+            >
+                <HomeIcon />
+            </button>
+            )}
           {addLabel && (
             <button
                 onClick={onAdd}
@@ -2182,6 +2244,27 @@ function ChapterActionSheet({
           stroke="currentColor"
           strokeWidth="1.9"
           strokeLinecap="round"
+        />
+      </svg>
+    );
+  }
+
+  function HomeIcon({ size = 17 }: { size?: number }) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M4 10.5L12 4L20 10.5"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M6.7 10.2V20H17.3V10.2"
+          stroke="currentColor"
+          strokeWidth="2.1"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
       </svg>
     );
