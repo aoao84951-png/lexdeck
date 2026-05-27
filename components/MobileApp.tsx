@@ -154,6 +154,10 @@ export default function MobileApp() {
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
 
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+
   const [screen, setScreen] = useState<Screen>("subjects");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
@@ -540,6 +544,25 @@ useEffect(() => {
     if (screen === "questions" && questionId) setScreen("detail");
   };
 
+  const finishSwipe = (direction: "back" | "forward") => {
+    setIsSwiping(false);
+    setSwipeX(direction === "back" ? window.innerWidth : -window.innerWidth);
+  
+    window.setTimeout(() => {
+      if (direction === "back") goBackScreen();
+      else goForwardScreen();
+  
+      window.setTimeout(() => {
+        setSwipeX(0);
+      }, 20);
+    }, 180);
+  };
+  
+  const cancelSwipe = () => {
+    setIsSwiping(false);
+    setSwipeX(0);
+  };
+
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
     if (!confirm("이 문제를 삭제할까?")) return;
@@ -589,16 +612,12 @@ useEffect(() => {
   return (
     <>
     <main
-        className="min-h-[100svh] bg-white text-[#111827]"
+        className="min-h-[100svh] overflow-hidden bg-white text-[#111827]"
         onTouchStart={(e) => {
-            const touch = e.touches[0];
-            e.currentTarget.dataset.startX = String(touch.clientX);
-            e.currentTarget.dataset.startY = String(touch.clientY);
-        }}
-        onTouchEnd={(e) => {
             if (formOpen || lawModalOpen || actionSubjectId || actionChapterId || movingChapterId || subjectFormOpen) {
-                return;
+            return;
             }
+
             const target = e.target as HTMLElement;
 
             if (
@@ -609,26 +628,51 @@ useEffect(() => {
             return;
             }
 
-            const startX = Number(e.currentTarget.dataset.startX);
-            const startY = Number(e.currentTarget.dataset.startY);
+            const touch = e.touches[0];
+            touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+            setIsSwiping(true);
+        }}
+        onTouchMove={(e) => {
+            if (!touchStartRef.current) return;
 
-            if (!startX || !startY) return;
+            const touch = e.touches[0];
+            const diffX = touch.clientX - touchStartRef.current.x;
+            const diffY = touch.clientY - touchStartRef.current.y;
 
-            const touch = e.changedTouches[0];
-            const diffX = touch.clientX - startX;
-            const diffY = touch.clientY - startY;
-
-            if (Math.abs(diffY) > 45) return;
-            if (Math.abs(diffX) < 70) return;
-
-            if (diffX > 0) {
-            goBackScreen();
-            } else {
-            goForwardScreen();
+            if (Math.abs(diffY) > 45) {
+            cancelSwipe();
+            touchStartRef.current = null;
+            return;
             }
+
+            if (Math.abs(diffX) < 8) return;
+
+            setSwipeX(diffX);
+        }}
+        onTouchEnd={() => {
+            if (!touchStartRef.current) return;
+
+            const threshold = 85;
+
+            if (swipeX > threshold) {
+            finishSwipe("back");
+            } else if (swipeX < -threshold) {
+            finishSwipe("forward");
+            } else {
+            cancelSwipe();
+            }
+
+            touchStartRef.current = null;
         }}
         >
-        <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
+        <section
+            className={`mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10 shadow-[0_0_28px_rgba(15,23,42,0.08)] ${
+                isSwiping ? "" : "transition-transform duration-200 ease-out"
+            }`}
+            style={{
+                transform: `translateX(${swipeX}px)`,
+            }}
+        >
             {isStandalone && (
             <button
                 onClick={() => window.location.reload()}
