@@ -1460,6 +1460,25 @@ function QuestionForm({
     const textRef = useRef<HTMLDivElement | null>(null);
     const explanationRef = useRef<HTMLDivElement | null>(null);
 
+    const savedSelectionRef = useRef<Range | null>(null);
+
+const saveSelection = () => {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+
+  savedSelectionRef.current = selection.getRangeAt(0).cloneRange();
+};
+
+const restoreSelection = () => {
+  const selection = window.getSelection();
+  const range = savedSelectionRef.current;
+
+  if (!selection || !range) return;
+
+  selection.removeAllRanges();
+  selection.addRange(range);
+};
+
   const COLOR_STORAGE_KEY = "lexdeck-custom-colors-v1";
 
 useEffect(() => {
@@ -1479,27 +1498,13 @@ const saveCustomColors = (next: string[]) => {
 };
 
 const runCommand = (command: string, value?: string) => {
+    restoreSelection();
+  
     document.execCommand(command, false, value);
   
-    if (
-      command === "underline" ||
-      command === "italic" ||
-      command === "bold" ||
-      command === "strikeThrough" ||
-      command === "foreColor" ||
-      command === "backColor"
-    ) {
-      setTimeout(() => {
-        document.execCommand("insertHTML", false, '<span>\u200B</span>');
-  
-        const selection = window.getSelection();
-  
-        if (!selection) return;
-  
-        selection.collapseToEnd();
-      }, 0);
-    }
+    savedSelectionRef.current = null;
   };
+      
   
   const insertLink = () => {
     const url = prompt("링크 주소를 입력해줘.");
@@ -1667,6 +1672,7 @@ const runCommand = (command: string, value?: string) => {
                 customColors={customColors}
                 saveCustomColors={saveCustomColors}
                 unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+                saveSelection={saveSelection}
             />
             <EditorBox
                 refObj={textRef}
@@ -1690,15 +1696,16 @@ const runCommand = (command: string, value?: string) => {
           </div>
 
           <Label className="mt-5">해설</Label>
-            <EditorToolbar
-                runCommand={runCommand}
-                insertLink={insertLink}
-                insertLawLink={insertLawLink}
-                unlinkLawLink={unlinkLawLink}
-                customColors={customColors}
-                saveCustomColors={saveCustomColors}
-                unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
-            />
+          <EditorToolbar
+            runCommand={runCommand}
+            insertLink={insertLink}
+            insertLawLink={insertLawLink}
+            unlinkLawLink={unlinkLawLink}
+            customColors={customColors}
+            saveCustomColors={saveCustomColors}
+            unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+            saveSelection={saveSelection}
+          />
           <EditorBox
             refObj={explanationRef}
             defaultHtml={unwrapLawAutoLinks(question?.explanationHtml ?? "")}
@@ -1757,6 +1764,7 @@ const runCommand = (command: string, value?: string) => {
                         customColors={customColors}
                         saveCustomColors={saveCustomColors}
                         unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+                        saveSelection={saveSelection}
                     />
 
                         <EditorBox
@@ -1848,7 +1856,6 @@ function EditorBox({
       range.deleteContents();
   
       const br = document.createElement("br");
-      const spacer = document.createTextNode("\u200B");
   
       range.insertNode(br);
       range.setStartAfter(br);
@@ -1888,6 +1895,7 @@ function EditorBox({
     unlinkSelectedAutoLawLink,
     customColors,
     saveCustomColors,
+    saveSelection,
   }: {
     runCommand: (command: string, value?: string) => void;
     insertLink: () => void;
@@ -1896,6 +1904,7 @@ function EditorBox({
     unlinkSelectedAutoLawLink: () => void;
     customColors: string[];
     saveCustomColors: (colors: string[]) => void;
+    saveSelection: () => void;
   }) {
     const [textPaletteOpen, setTextPaletteOpen] = useState(false);
     const [highlightPaletteOpen, setHighlightPaletteOpen] = useState(false);
@@ -1939,12 +1948,13 @@ function EditorBox({
         <span className="mx-0.5 h-4 w-px bg-[#d7ddea]" />
   
         <div className="relative">
-          <ToolIcon
-            onClick={() => {
-              setTextPaletteOpen((prev) => !prev);
-              setHighlightPaletteOpen(false);
-            }}
-          >
+        <ToolIcon
+        onClick={() => {
+            saveSelection();
+            setTextPaletteOpen((prev) => !prev);
+            setHighlightPaletteOpen(false);
+        }}
+        >
             <span className="font-black text-[#22c55e]">C</span>
           </ToolIcon>
   
@@ -1964,10 +1974,11 @@ function EditorBox({
         <div className="relative">
           <ToolIcon
             onClick={() => {
-              setHighlightPaletteOpen((prev) => !prev);
-              setTextPaletteOpen(false);
+                saveSelection();
+                setHighlightPaletteOpen((prev) => !prev);
+                setTextPaletteOpen(false);
             }}
-          >
+            >
             <span className="rounded-[3px] bg-[#22c55e] px-1 font-black text-white">
               C
             </span>
@@ -1977,10 +1988,7 @@ function EditorBox({
             <ColorPalette
                 baseColors={baseColors}
                 customColors={customColors}
-                onNone={() => {
-                    document.execCommand("hiliteColor", false, "transparent");
-                    document.execCommand("backColor", false, "transparent");
-                }}
+                onNone={() => runCommand("backColor", "transparent")}
                 onPick={(color) => runCommand("backColor", color)}
                 onAdd={addCustomColor}
                 onDelete={deleteCustomColor}
@@ -2051,6 +2059,7 @@ function EditorBox({
           <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 onNone();
                 onClose();
@@ -2067,10 +2076,11 @@ function EditorBox({
                     <div key={color} className="relative">
                     <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
-                        onPick(color);
-                        onClose();
-                        }}
+                            onPick(color);
+                            onClose();
+                    }}
                         className="h-6 w-6 rounded-[6px] border border-white shadow-[0_0_0_1px_rgba(0,0,0,0.12)]"
                         style={{ backgroundColor: color }}
                         title={color}
