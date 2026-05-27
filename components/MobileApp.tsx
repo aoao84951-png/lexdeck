@@ -63,6 +63,9 @@ const stripEditorControls = (html: string) => {
       .replace(/<span[^>]*data-law-after="true"[^>]*>[\s\S]*?<\/span>/g, "");
   };
 
+  const cleanEditorHtml = (html: string) =>
+    stripEditorControls(html).replace(/\u200B/g, "");
+
   const unwrapLawAutoLinks = (html: string) => {
     if (!html) return "";
   
@@ -1785,13 +1788,13 @@ const runCommand = (command: string, value?: string) => {
                 subjectId: defaultSubjectId,
                 chapterId: defaultChapterId,
                 answer,
-                textHtml: stripEditorControls(textRef.current?.innerHTML ?? ""),
-                explanationHtml: stripEditorControls(explanationRef.current?.innerHTML ?? ""),
+                textHtml: cleanEditorHtml(textRef.current?.innerHTML ?? ""),
+                explanationHtml: cleanEditorHtml(explanationRef.current?.innerHTML ?? ""),
                 extraPoints: extraPoints
                     .map((point, index) => ({
                         category: point.category.trim(),
                         title: point.title.trim(),
-                        descriptionHtml: stripEditorControls(
+                        descriptionHtml: cleanEditorHtml(
                             extraPointRefs.current[index]?.innerHTML?.trim() ?? ""
                           ),
                     }))
@@ -1834,9 +1837,26 @@ function EditorBox({
   
     useEffect(() => {
       if (!innerRef.current) return;
-  
       innerRef.current.innerHTML = defaultHtml;
     }, [defaultHtml]);
+  
+    const insertSoftBreak = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+  
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+  
+      const br = document.createElement("br");
+      const spacer = document.createTextNode("\u200B");
+  
+      range.insertNode(br);
+      range.setStartAfter(br);
+      range.setEndAfter(br);
+  
+      selection.removeAllRanges();
+      selection.addRange(range);
+    };
   
     return (
       <div
@@ -1847,16 +1867,15 @@ function EditorBox({
         }}
         onClick={onClick}
         onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-          
-              document.execCommand("insertHTML", false, "<br>");
-            }
-          }}
+          if (e.key === "Enter") {
+            e.preventDefault();
+            insertSoftBreak();
+          }
+        }}
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder}
-        className="min-h-[130px] w-full rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
+        className="min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
       />
     );
   }
