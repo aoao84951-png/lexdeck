@@ -41,8 +41,6 @@ type LawArticle = {
 
 const uid = () => crypto.randomUUID();
 
-const STATE_STORAGE_KEY = "lexdeck-ox-state-v1";
-
 const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
@@ -214,7 +212,7 @@ export default function MobileApp() {
     }
   
     window.history.pushState(state, "", window.location.href);
-  }, [screen, subjectId, chapterId, questionId]);
+  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds]);
   
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -246,39 +244,7 @@ export default function MobileApp() {
     };
   }, []);
 
-useEffect(() => {
-  const savedState = sessionStorage.getItem(STATE_STORAGE_KEY);
-  if (!savedState) return;
 
-  try {
-    const parsed = JSON.parse(savedState);
-
-    setScreen(parsed.screen || "subjects");
-    setSubjectId(parsed.subjectId || "");
-    setChapterId(parsed.chapterId || "");
-    setQuestionId(parsed.questionId || "");
-    setShowAnswer(parsed.showAnswer || false);
-    setSearch(parsed.search || "");
-    setExpandedIds(parsed.expandedIds || []);
-  } catch {
-    sessionStorage.removeItem(STATE_STORAGE_KEY);
-  }
-}, []);
-
-useEffect(() => {
-  sessionStorage.setItem(
-    STATE_STORAGE_KEY,
-    JSON.stringify({
-      screen,
-      subjectId,
-      chapterId,
-      questionId,
-      showAnswer,
-      search,
-      expandedIds,
-    })
-  );
-}, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds]);
 
 useEffect(() => {
   const standalone =
@@ -573,9 +539,7 @@ useEffect(() => {
   };
 
   const goBackScreen = () => {
-    if (screen === "chapters") setScreen("subjects");
-    if (screen === "questions") setScreen("chapters");
-    if (screen === "detail") setScreen("questions");
+    window.history.back();
   };
   
   const goForwardScreen = () => {
