@@ -183,6 +183,7 @@ export default function MobileApp() {
 
   const [lawModalOpen, setLawModalOpen] = useState(false);
   const [lawArticle, setLawArticle] = useState<LawArticle | null>(null);
+  const lawCacheRef = useRef<Record<string, LawArticle>>({});
 
   const loadedRef = useRef(false);
 
@@ -323,9 +324,8 @@ useEffect(() => {
         const normalizedTarget = normalizeSearch(target);
 
         if (keyword) return normalizedTarget.includes(keyword);
-        const targetChapterIds = [chapterId, ...getDescendantChapterIds(chapterId)];
 
-        return targetChapterIds.includes(q.chapterId);
+        return q.chapterId === chapterId;
     });
   }, [search, questions, subjects, chapters, chapterId]);
 
@@ -382,11 +382,26 @@ useEffect(() => {
   };
 
   const selectChapter = (id: string) => {
+    const hasChildren = chapters.some((c) => c.parentId === id);
+    const hasOwnQuestions = questions.some((q) => q.chapterId === id);
+  
     setChapterId(id);
-    const first = questions.find((q) => q.chapterId === id);
-    if (first) setQuestionId(first.id);
     setSearch("");
     setShowAnswer(false);
+  
+    // 하위폴더가 있으면 문제목록으로 가지 않고 펼침/접힘
+    if (hasChildren) {
+      setExpandedIds((prev) =>
+        prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+      );
+      return;
+    }
+  
+    // 하위폴더가 없으면, 문제가 없어도 문제목록으로 들어감
+    const first = questions.find((q) => q.chapterId === id);
+    if (first) setQuestionId(first.id);
+    else setQuestionId("");
+  
     setScreen("questions");
   };
 
@@ -520,6 +535,14 @@ useEffect(() => {
   };
 
   const openLawArticle = async (lawName: string, articleNo: string) => {
+    const key = `${lawName}-${articleNo}`;
+  
+    if (lawCacheRef.current[key]) {
+      setLawArticle(lawCacheRef.current[key]);
+      setLawModalOpen(true);
+      return;
+    }
+  
     const res = await fetch(
       `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
     );
@@ -530,6 +553,8 @@ useEffect(() => {
       alert("조문을 찾지 못했어.");
       return;
     }
+  
+    lawCacheRef.current[key] = data.article;
   
     setLawArticle(data.article);
     setLawModalOpen(true);
