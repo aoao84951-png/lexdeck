@@ -1849,20 +1849,23 @@ function EditorBox({
     }, [defaultHtml]);
   
     const insertSoftBreak = () => {
-      const selection = window.getSelection();
-      if (!selection || selection.rangeCount === 0) return;
-  
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-  
-      const br = document.createElement("br");
-  
-      range.insertNode(br);
-      range.setStartAfter(br);
-      range.setEndAfter(br);
-  
-      selection.removeAllRanges();
-      selection.addRange(range);
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+      
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+      
+        const br = document.createElement("br");
+        const spacer = document.createTextNode("\u200B");
+      
+        range.insertNode(spacer);
+        range.insertNode(br);
+      
+        range.setStartAfter(spacer);
+        range.setEndAfter(spacer);
+      
+        selection.removeAllRanges();
+        selection.addRange(range);
     };
   
     return (
