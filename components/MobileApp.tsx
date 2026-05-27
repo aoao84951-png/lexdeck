@@ -154,10 +154,6 @@ export default function MobileApp() {
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
 
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
-  const [swipeX, setSwipeX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
-
   const [screen, setScreen] = useState<Screen>("subjects");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
@@ -190,6 +186,65 @@ export default function MobileApp() {
   const lawCacheRef = useRef<Record<string, LawArticle>>({});
 
   const loadedRef = useRef(false);
+
+  const isHistoryMoving = useRef(false);
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const isFirstHistoryState = useRef(true);
+
+  useEffect(() => {
+    const state = {
+      screen,
+      subjectId,
+      chapterId,
+      questionId,
+      showAnswer,
+      search,
+      expandedIds,
+    };
+  
+    if (isHistoryMoving.current) {
+      isHistoryMoving.current = false;
+      return;
+    }
+  
+    if (isFirstHistoryState.current) {
+      window.history.replaceState(state, "", window.location.href);
+      isFirstHistoryState.current = false;
+      return;
+    }
+  
+    window.history.pushState(state, "", window.location.href);
+  }, [screen, subjectId, chapterId, questionId]);
+  
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (!state) return;
+  
+      isHistoryMoving.current = true;
+  
+      setScreen(state.screen || "subjects");
+      setSubjectId(state.subjectId || "");
+      setChapterId(state.chapterId || "");
+      setQuestionId(state.questionId || "");
+      setShowAnswer(false);
+      setSearch(state.search || "");
+      setExpandedIds(state.expandedIds || []);
+  
+      setFormOpen(false);
+      setSubjectFormOpen(false);
+      setLawModalOpen(false);
+      setActionSubjectId(null);
+      setActionChapterId(null);
+      setMovingChapterId(null);
+    };
+  
+    window.addEventListener("popstate", handlePopState);
+  
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
 
 useEffect(() => {
   const savedState = sessionStorage.getItem(STATE_STORAGE_KEY);
@@ -544,25 +599,6 @@ useEffect(() => {
     if (screen === "questions" && questionId) setScreen("detail");
   };
 
-  const finishSwipe = (direction: "back" | "forward") => {
-    setIsSwiping(false);
-    setSwipeX(direction === "back" ? window.innerWidth : -window.innerWidth);
-  
-    window.setTimeout(() => {
-      if (direction === "back") goBackScreen();
-      else goForwardScreen();
-  
-      window.setTimeout(() => {
-        setSwipeX(0);
-      }, 20);
-    }, 180);
-  };
-  
-  const cancelSwipe = () => {
-    setIsSwiping(false);
-    setSwipeX(0);
-  };
-
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
     if (!confirm("이 문제를 삭제할까?")) return;
@@ -612,9 +648,16 @@ useEffect(() => {
   return (
     <>
     <main
-        className="min-h-[100svh] overflow-hidden bg-white text-[#111827]"
+        className="min-h-[100svh] bg-white text-[#111827]"
         onTouchStart={(e) => {
-            if (formOpen || lawModalOpen || actionSubjectId || actionChapterId || movingChapterId || subjectFormOpen) {
+            if (
+            formOpen ||
+            lawModalOpen ||
+            actionSubjectId ||
+            actionChapterId ||
+            movingChapterId ||
+            subjectFormOpen
+            ) {
             return;
             }
 
@@ -629,50 +672,28 @@ useEffect(() => {
             }
 
             const touch = e.touches[0];
-            touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-            setIsSwiping(true);
+            swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
         }}
-        onTouchMove={(e) => {
-            if (!touchStartRef.current) return;
+        onTouchEnd={(e) => {
+            if (!swipeStartRef.current) return;
 
-            const touch = e.touches[0];
-            const diffX = touch.clientX - touchStartRef.current.x;
-            const diffY = touch.clientY - touchStartRef.current.y;
+            const touch = e.changedTouches[0];
+            const diffX = touch.clientX - swipeStartRef.current.x;
+            const diffY = touch.clientY - swipeStartRef.current.y;
 
-            if (Math.abs(diffY) > 45) {
-            cancelSwipe();
-            touchStartRef.current = null;
-            return;
-            }
+            swipeStartRef.current = null;
 
-            if (Math.abs(diffX) < 8) return;
+            if (Math.abs(diffY) > 45) return;
+            if (Math.abs(diffX) < 85) return;
 
-            setSwipeX(diffX);
-        }}
-        onTouchEnd={() => {
-            if (!touchStartRef.current) return;
-
-            const threshold = 85;
-
-            if (swipeX > threshold) {
-            finishSwipe("back");
-            } else if (swipeX < -threshold) {
-            finishSwipe("forward");
+            if (diffX > 0) {
+            window.history.back();
             } else {
-            cancelSwipe();
+            goForwardScreen();
             }
-
-            touchStartRef.current = null;
         }}
         >
-        <section
-            className={`mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10 shadow-[0_0_28px_rgba(15,23,42,0.08)] ${
-                isSwiping ? "" : "transition-transform duration-200 ease-out"
-            }`}
-            style={{
-                transform: `translateX(${swipeX}px)`,
-            }}
-        >
+        <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
             {isStandalone && (
             <button
                 onClick={() => window.location.reload()}
