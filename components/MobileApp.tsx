@@ -186,7 +186,6 @@ export default function MobileApp() {
   const loadedRef = useRef(false);
 
   const isHistoryMoving = useRef(false);
-  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const isFirstHistoryState = useRef(true);
 
   useEffect(() => {
@@ -539,29 +538,11 @@ useEffect(() => {
   };
 
   const goBackScreen = () => {
-    window.history.back();
+    if (screen === "chapters") setScreen("subjects");
+    if (screen === "questions") setScreen("chapters");
+    if (screen === "detail") setScreen("questions");
   };
-  
-  const goForwardScreen = () => {
-    if (screen === "subjects" && subjectId) setScreen("chapters");
-  
-    if (screen === "chapters" && chapterId) {
-      const hasChildren = chapters.some((c) => c.parentId === chapterId);
-  
-      if (hasChildren) {
-        setExpandedIds((prev) =>
-          prev.includes(chapterId)
-            ? prev
-            : [...prev, chapterId]
-        );
-        return;
-      }
-  
-      setScreen("questions");
-    }
-  
-    if (screen === "questions" && questionId) setScreen("detail");
-  };
+
 
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
@@ -611,52 +592,7 @@ useEffect(() => {
 
   return (
     <>
-    <main
-        className="min-h-[100svh] bg-white text-[#111827]"
-        onTouchStart={(e) => {
-            if (
-            formOpen ||
-            lawModalOpen ||
-            actionSubjectId ||
-            actionChapterId ||
-            movingChapterId ||
-            subjectFormOpen
-            ) {
-            return;
-            }
-
-            const target = e.target as HTMLElement;
-
-            if (
-            target.closest(
-                "button, input, textarea, [contenteditable='true'], [data-law-name][data-article-no]"
-            )
-            ) {
-            return;
-            }
-
-            const touch = e.touches[0];
-            swipeStartRef.current = { x: touch.clientX, y: touch.clientY };
-        }}
-        onTouchEnd={(e) => {
-            if (!swipeStartRef.current) return;
-
-            const touch = e.changedTouches[0];
-            const diffX = touch.clientX - swipeStartRef.current.x;
-            const diffY = touch.clientY - swipeStartRef.current.y;
-
-            swipeStartRef.current = null;
-
-            if (Math.abs(diffY) > 45) return;
-            if (Math.abs(diffX) < 85) return;
-
-            if (diffX > 0) {
-            window.history.back();
-            } else {
-            goForwardScreen();
-            }
-        }}
-        >
+    <main className="min-h-[100svh] bg-white text-[#111827]">
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
             {isStandalone && (
             <button
