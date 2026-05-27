@@ -383,7 +383,6 @@ useEffect(() => {
 
   const selectChapter = (id: string) => {
     const hasChildren = chapters.some((c) => c.parentId === id);
-    const hasOwnQuestions = questions.some((q) => q.chapterId === id);
   
     setChapterId(id);
     setSearch("");
@@ -514,6 +513,33 @@ useEffect(() => {
     setExpandedIds([]);
   };
 
+  const goBackScreen = () => {
+    if (screen === "chapters") setScreen("subjects");
+    if (screen === "questions") setScreen("chapters");
+    if (screen === "detail") setScreen("questions");
+  };
+  
+  const goForwardScreen = () => {
+    if (screen === "subjects" && subjectId) setScreen("chapters");
+  
+    if (screen === "chapters" && chapterId) {
+      const hasChildren = chapters.some((c) => c.parentId === chapterId);
+  
+      if (hasChildren) {
+        setExpandedIds((prev) =>
+          prev.includes(chapterId)
+            ? prev
+            : [...prev, chapterId]
+        );
+        return;
+      }
+  
+      setScreen("questions");
+    }
+  
+    if (screen === "questions" && questionId) setScreen("detail");
+  };
+
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
     if (!confirm("이 문제를 삭제할까?")) return;
@@ -562,7 +588,46 @@ useEffect(() => {
 
   return (
     <>
-    <main className="min-h-[100svh] bg-white text-[#111827]">
+    <main
+        className="min-h-[100svh] bg-white text-[#111827]"
+        onTouchStart={(e) => {
+            const touch = e.touches[0];
+            e.currentTarget.dataset.startX = String(touch.clientX);
+            e.currentTarget.dataset.startY = String(touch.clientY);
+        }}
+        onTouchEnd={(e) => {
+            if (formOpen || lawModalOpen || actionSubjectId || actionChapterId || movingChapterId || subjectFormOpen) {
+                return;
+            }
+            const target = e.target as HTMLElement;
+
+            if (
+            target.closest(
+                "button, input, textarea, [contenteditable='true'], [data-law-name][data-article-no]"
+            )
+            ) {
+            return;
+            }
+
+            const startX = Number(e.currentTarget.dataset.startX);
+            const startY = Number(e.currentTarget.dataset.startY);
+
+            if (!startX || !startY) return;
+
+            const touch = e.changedTouches[0];
+            const diffX = touch.clientX - startX;
+            const diffY = touch.clientY - startY;
+
+            if (Math.abs(diffY) > 45) return;
+            if (Math.abs(diffX) < 70) return;
+
+            if (diffX > 0) {
+            goBackScreen();
+            } else {
+            goForwardScreen();
+            }
+        }}
+        >
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
             {isStandalone && (
             <button
@@ -610,11 +675,7 @@ useEffect(() => {
               : ""
           }
           showBack={screen !== "subjects"}
-          onBack={() => {
-            if (screen === "chapters") setScreen("subjects");
-            if (screen === "questions") setScreen("chapters");
-            if (screen === "detail") setScreen("questions");
-          }}
+          onBack={goBackScreen}
           onAdd={() => {
             if (screen === "subjects") addSubject();
             if (screen === "chapters") addChapter(null);
