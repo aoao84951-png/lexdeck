@@ -28,6 +28,15 @@ type Question = {
   extraPoints?: ExtraPoint[];
   favorite: boolean;
   memorized: boolean;
+  disabledAutoLinks?: string[];
+};
+
+type LawArticle = {
+    law_name: string;
+    article_no: string;
+    article_title: string | null;
+    article_text: string;
+    source_url: string | null;
 };
 
 const uid = () => crypto.randomUUID();
@@ -41,6 +50,57 @@ const initialQuestions: Question[] = [];
 
 const stripHtml = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+const makeAutoLinkKey = (lawName: string, articleNo: string, text: string) =>
+    `${lawName}__${articleNo}__${text}`;
+  
+const stripEditorControls = (html: string) => {
+    if (!html) return "";
+  
+    return html
+      .replace(/<button[^>]*data-law-remove="true"[^>]*>[\s\S]*?<\/button>/g, "")
+      .replace(/<span[^>]*data-disable-law-link="true"[^>]*>[\s\S]*?<\/span>/g, "")
+      .replace(/<span[^>]*data-law-after="true"[^>]*>[\s\S]*?<\/span>/g, "");
+  };
+
+  const unwrapLawAutoLinks = (html: string) => {
+    if (!html) return "";
+  
+    const div = document.createElement("div");
+    div.innerHTML = stripEditorControls(html);
+  
+    div.querySelectorAll(".law-auto-link").forEach((el) => {
+      el.replaceWith(document.createTextNode(el.textContent ?? ""));
+    });
+  
+    div.querySelectorAll("[data-law-after]").forEach((el) => {
+      el.remove();
+    });
+  
+    return div.innerHTML;
+  };
+  
+  const linkLawText = (html: string, disabledAutoLinks: string[] = []) => {
+    if (!html) return "";
+  
+    const cleanedHtml = stripEditorControls(html);
+  
+    if (cleanedHtml.includes("data-law-name=")) {
+      return cleanedHtml;
+    }
+  
+    return cleanedHtml.replace(
+      /([가-힣A-Za-z0-9·ㆍ「」()]{2,40})\s*제\s*(\d+)조/g,
+      (match, lawName, articleNo) => {
+        const text = `${lawName} 제${articleNo}조`;
+        const key = makeAutoLinkKey(lawName, articleNo, text);
+  
+        if (disabledAutoLinks.includes(key)) return text;
+  
+        return `<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link">${text}</span>`;
+      }
+    );
+};
 
 const normalizeSearch = (value: string) =>
     value.replace(/\s+/g, "").toLowerCase();
@@ -117,6 +177,9 @@ export default function MobileApp() {
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
 
   const [isStandalone, setIsStandalone] = useState(false);
+
+  const [lawModalOpen, setLawModalOpen] = useState(false);
+  const [lawArticle, setLawArticle] = useState<LawArticle | null>(null);
 
   const loadedRef = useRef(false);
 
@@ -453,6 +516,22 @@ useEffect(() => {
     }
   };
 
+  const openLawArticle = async (lawName: string, articleNo: string) => {
+    const res = await fetch(
+      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
+    );
+  
+    const data = await res.json();
+  
+    if (!data.success) {
+      alert("조문을 찾지 못했어.");
+      return;
+    }
+  
+    setLawArticle(data.article);
+    setLawModalOpen(true);
+  };
+
   return (
     <>
     <main className="min-h-[100svh] bg-white text-[#111827]">
@@ -687,6 +766,7 @@ useEffect(() => {
                 setShowAnswer={setShowAnswer}
                 updateQuestion={updateQuestion}
                 onEdit={openEdit}
+                onOpenLawArticle={openLawArticle}
             />
           </div>
         )}
@@ -747,6 +827,7 @@ useEffect(() => {
                   extraPoints: saved.extraPoints ?? [],
                   favorite: false,
                   memorized: false,
+                  disabledAutoLinks: saved.disabledAutoLinks ?? [],
                 },
               ]);
               setQuestionId(id);
@@ -759,6 +840,13 @@ useEffect(() => {
         />
       )}
     </main>
+
+    {lawModalOpen && lawArticle && (
+        <LawArticleModal
+            article={lawArticle}
+            onClose={() => setLawModalOpen(false)}
+        />
+    )}
 
     {subjectFormOpen && (
     <SubjectForm
@@ -1073,6 +1161,7 @@ function MobileHeader({
     setShowAnswer,
     updateQuestion,
     onEdit,
+    onOpenLawArticle,
   }: {
     question?: Question;
     questions: Question[];
@@ -1081,6 +1170,7 @@ function MobileHeader({
     setShowAnswer: (v: boolean) => void;
     updateQuestion: (id: string, patch: Partial<Question>) => void;
     onEdit: () => void;
+    onOpenLawArticle: (lawName: string, articleNo: string) => void;
   }) {
     const detailTapStart = useRef<{ x: number; y: number } | null>(null);
   
@@ -1099,6 +1189,43 @@ function MobileHeader({
       setQuestionId(questions[currentIndex + 1].id);
       setShowAnswer(false);
     };
+
+    const handleLawClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLElement;
+      
+        const disableButton = target.closest("[data-disable-law-link]") as HTMLElement | null;
+      
+        if (disableButton) {
+          e.stopPropagation();
+      
+          const key = disableButton.dataset.autoLinkKey;
+          if (!key) return;
+      
+          updateQuestion(question.id, {
+            disabledAutoLinks: [
+              ...(question.disabledAutoLinks ?? []),
+              key,
+            ],
+          });
+      
+          return;
+        }
+      
+        const button = target.closest(
+        "[data-law-name][data-article-no]"
+        ) as HTMLElement | null;
+      
+        if (!button) return;
+      
+        e.stopPropagation();
+      
+        const lawName = button.dataset.lawName;
+        const articleNo = button.dataset.articleNo;
+      
+        if (!lawName || !articleNo) return;
+      
+        onOpenLawArticle(lawName, articleNo);
+    };
   
     return (
       <div
@@ -1111,7 +1238,7 @@ function MobileHeader({
   
           const target = e.target as HTMLElement;
   
-          if (target.closest("button")) {
+          if (target.closest("button, [data-law-name][data-article-no]")) {
             detailTapStart.current = null;
             return;
           }
@@ -1154,7 +1281,8 @@ function MobileHeader({
               className={`w-full text-center text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
                 question.favorite ? "text-[#d95c5c]" : "text-[#111827]"
               }`}
-              dangerouslySetInnerHTML={{ __html: question.textHtml }}
+              onClick={handleLawClick}
+              dangerouslySetInnerHTML={{ __html: linkLawText(question.textHtml, question.disabledAutoLinks ?? []) }}
             />
           </div>
           </div>
@@ -1224,7 +1352,8 @@ function MobileHeader({
   
               <div
                 className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
-                dangerouslySetInnerHTML={{ __html: question.explanationHtml }}
+                onClick={handleLawClick}
+                dangerouslySetInnerHTML={{ __html: linkLawText(question.explanationHtml, question.disabledAutoLinks ?? []) }}
               />
               {(question.extraPoints ?? []).length > 0 && (
                 <div className="mt-6">
@@ -1234,32 +1363,35 @@ function MobileHeader({
 
                     <div className="space-y-3">
                     {(question.extraPoints ?? []).map((point, index) => (
-                        <div key={index} className="rounded-2xl bg-[#f5f6fa] px-2 py-3">
-                        <div
-                            className={`flex items-center gap-2 ${
-                                !point.category ? "pl-[7px]" : ""
-                            }`}
-                            >
-                            {point.category && (
-                                <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
-                                {point.category}
-                                </span>
-                            )}
-
-                            {point.title && (
-                                <p className="text-[13px] font-bold text-[#111827]">
-                                {point.title}
-                                </p>
-                            )}
-                        </div>
-
-                        {point.descriptionHtml && (
-                            <div
-                                className="mt-2 whitespace-pre-line pl-[7px] text-[12px] leading-relaxed text-[#596275]"
-                                dangerouslySetInnerHTML={{ __html: point.descriptionHtml }}
+                        <div key={index} className="rounded-2xl bg-[#f5f6fa] px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {point.category && (
+                            <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
+                              {point.category}
+                            </span>
+                          )}
+                      
+                          {point.title && (
+                            <p
+                              className="text-[13px] font-bold text-[#111827]"
+                              onClick={handleLawClick}
+                              dangerouslySetInnerHTML={{
+                                __html: linkLawText(point.title, question.disabledAutoLinks ?? []),
+                              }}
                             />
-                            )}
+                          )}
                         </div>
+                      
+                        {point.descriptionHtml && (
+                          <div
+                            className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
+                            onClick={handleLawClick}
+                            dangerouslySetInnerHTML={{
+                              __html: linkLawText(point.descriptionHtml, question.disabledAutoLinks ?? []),
+                            }}
+                          />
+                        )}
+                      </div>
                     ))}
                     </div>
                 </div>
@@ -1289,6 +1421,10 @@ function QuestionForm({
         question?.extraPoints?.length ? question.extraPoints : []
       );
       const extraPointRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+      const [disabledAutoLinks, setDisabledAutoLinks] = useState<string[]>(
+        question?.disabledAutoLinks ?? []
+      );
       
       const addExtraPoint = () => {
         setExtraPoints((prev) => [
@@ -1339,8 +1475,27 @@ const saveCustomColors = (next: string[]) => {
   localStorage.setItem(COLOR_STORAGE_KEY, JSON.stringify(next));
 };
 
-  const runCommand = (command: string, value?: string) => {
+const runCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
+  
+    if (
+      command === "underline" ||
+      command === "italic" ||
+      command === "bold" ||
+      command === "strikeThrough" ||
+      command === "foreColor" ||
+      command === "backColor"
+    ) {
+      setTimeout(() => {
+        document.execCommand("insertHTML", false, '<span>\u200B</span>');
+  
+        const selection = window.getSelection();
+  
+        if (!selection) return;
+  
+        selection.collapseToEnd();
+      }, 0);
+    }
   };
   
   const insertLink = () => {
@@ -1357,6 +1512,131 @@ const saveCustomColors = (next: string[]) => {
       anchor.target = "_blank";
       anchor.rel = "noopener noreferrer";
     }
+  };
+
+  const insertLawLink = () => {
+    const selection = window.getSelection();
+    if (!selection || !selection.toString().trim()) {
+      alert("법령으로 연결할 글자를 먼저 드래그해줘.");
+      return;
+    }
+
+    const lawName = prompt("법령명을 입력해줘. 예: 민법, 형법, 변호사법");
+    if (!lawName?.trim()) return;
+
+    const articleNo = prompt("조문 번호를 입력해줘. 예: 750");
+    if (!articleNo?.trim()) return;
+
+    const selectedText = selection.toString();
+
+    const html = `<span role="button" data-law-name="${lawName.trim()}" data-article-no="${articleNo.trim()}" class="law-auto-link">${selectedText}</span>`;
+    document.execCommand("insertHTML", false, html);
+  };
+
+  const handleDisableAutoLinkInEditor = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const disableButton = target.closest("[data-disable-law-link]") as HTMLElement | null;
+  
+    if (!disableButton) return;
+  
+    e.preventDefault();
+    e.stopPropagation();
+  
+    const key = disableButton.dataset.autoLinkKey;
+    if (!key) return;
+  
+    setDisabledAutoLinks((prev) =>
+      prev.includes(key) ? prev : [...prev, key]
+    );
+  
+    const lawLink = disableButton.closest("[data-law-name][data-article-no]") as HTMLElement | null;
+    if (!lawLink) return;
+  
+    const text = lawLink.textContent?.replace("×", "").trim() ?? "";
+    lawLink.replaceWith(document.createTextNode(text));
+  };
+
+  const unlinkLawLink = () => {
+    
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const node = selection.anchorNode;
+    const element = node instanceof HTMLElement ? node : node?.parentElement;
+
+    const lawButton = element?.closest(
+      "[data-law-name][data-article-no]"
+    ) as HTMLElement | null;
+
+    if (!lawButton) {
+      alert("해제할 법령 링크 안에 커서를 두거나 링크를 선택해줘.");
+      return;
+    }
+
+    const text = lawButton.textContent ?? "";
+
+    lawButton.replaceWith(document.createTextNode(text));
+  };
+
+  const unlinkSelectedAutoLawLink = () => {
+    const selection = window.getSelection();
+  
+    if (!selection || selection.rangeCount === 0) {
+      alert("자동링크를 해제할 부분을 드래그해줘.");
+      return;
+    }
+  
+    const range = selection.getRangeAt(0);
+  
+    const container = document.createElement("div");
+    container.appendChild(range.cloneContents());
+  
+    const links = Array.from(
+      container.querySelectorAll("[data-auto-link-key]")
+    ) as HTMLElement[];
+  
+    const nextKeys = links
+      .map((el) => el.dataset.autoLinkKey)
+      .filter(Boolean) as string[];
+  
+    const selectedText = selection.toString().trim();
+  
+    const regex =
+      /([가-힣A-Za-z0-9·ㆍ「」()]{2,40})\s*제\s*(\d+)조/g;
+  
+    let match;
+  
+    while ((match = regex.exec(selectedText)) !== null) {
+      const lawName = match[1];
+      const articleNo = match[2];
+      const text = `${lawName} 제${articleNo}조`;
+  
+      nextKeys.push(makeAutoLinkKey(lawName, articleNo, text));
+    }
+  
+    if (nextKeys.length === 0) {
+      alert("선택한 부분에서 자동링크를 찾지 못했어.");
+      return;
+    }
+  
+    setDisabledAutoLinks((prev) =>
+      Array.from(new Set([...prev, ...nextKeys]))
+    );
+  
+    // 실제 span 제거
+    const selectedLinks = Array.from(
+      document.querySelectorAll("[data-auto-link-key]")
+    ) as HTMLElement[];
+  
+    selectedLinks.forEach((el) => {
+      const key = el.dataset.autoLinkKey;
+  
+      if (!key || !nextKeys.includes(key)) return;
+  
+      const text = el.textContent ?? "";
+  
+      el.replaceWith(document.createTextNode(text));
+    });
   };
 
 
@@ -1379,13 +1659,16 @@ const saveCustomColors = (next: string[]) => {
             <EditorToolbar
                 runCommand={runCommand}
                 insertLink={insertLink}
+                insertLawLink={insertLawLink}
+                unlinkLawLink={unlinkLawLink}
                 customColors={customColors}
                 saveCustomColors={saveCustomColors}
-                />
+                unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+            />
             <EditorBox
-            refObj={textRef}
-            defaultHtml={question?.textHtml ?? ""}
-            placeholder="문제 지문을 입력해줘."
+                refObj={textRef}
+                defaultHtml={unwrapLawAutoLinks(question?.textHtml ?? "")}
+                placeholder="문제 지문을 입력해줘."
             />
 
           <Label className="mt-5">정답</Label>
@@ -1404,15 +1687,18 @@ const saveCustomColors = (next: string[]) => {
           </div>
 
           <Label className="mt-5">해설</Label>
-          <EditorToolbar
-            runCommand={runCommand}
-            insertLink={insertLink}
-            customColors={customColors}
-            saveCustomColors={saveCustomColors}
-          />
+            <EditorToolbar
+                runCommand={runCommand}
+                insertLink={insertLink}
+                insertLawLink={insertLawLink}
+                unlinkLawLink={unlinkLawLink}
+                customColors={customColors}
+                saveCustomColors={saveCustomColors}
+                unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+            />
           <EditorBox
             refObj={explanationRef}
-            defaultHtml={question?.explanationHtml ?? ""}
+            defaultHtml={unwrapLawAutoLinks(question?.explanationHtml ?? "")}
             placeholder="해설을 입력해줘."
           />
           <div className="mt-5">
@@ -1460,19 +1746,23 @@ const saveCustomColors = (next: string[]) => {
                     />
 
                     <div className="mt-2">
-                        <EditorToolbar
-                            runCommand={runCommand}
-                            insertLink={insertLink}
-                            customColors={customColors}
-                            saveCustomColors={saveCustomColors}
-                        />
+                    <EditorToolbar
+                        runCommand={runCommand}
+                        insertLink={insertLink}
+                        insertLawLink={insertLawLink}
+                        unlinkLawLink={unlinkLawLink}
+                        customColors={customColors}
+                        saveCustomColors={saveCustomColors}
+                        unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+                    />
 
                         <EditorBox
                             setRef={(el) => {
                                 extraPointRefs.current[index] = el;
                             }}
-                            defaultHtml={point.descriptionHtml}
+                            defaultHtml={unwrapLawAutoLinks(point.descriptionHtml)}
                             placeholder="내용"
+                            onClick={handleDisableAutoLinkInEditor}
                         />
                     </div>
                 </div>
@@ -1495,15 +1785,18 @@ const saveCustomColors = (next: string[]) => {
                 subjectId: defaultSubjectId,
                 chapterId: defaultChapterId,
                 answer,
-                textHtml: textRef.current?.innerHTML ?? "",
-                explanationHtml: explanationRef.current?.innerHTML ?? "",
+                textHtml: stripEditorControls(textRef.current?.innerHTML ?? ""),
+                explanationHtml: stripEditorControls(explanationRef.current?.innerHTML ?? ""),
                 extraPoints: extraPoints
                     .map((point, index) => ({
                         category: point.category.trim(),
                         title: point.title.trim(),
-                        descriptionHtml: extraPointRefs.current[index]?.innerHTML?.trim() ?? "",
+                        descriptionHtml: stripEditorControls(
+                            extraPointRefs.current[index]?.innerHTML?.trim() ?? ""
+                          ),
                     }))
                     .filter((point) => point.title || point.descriptionHtml),
+                    disabledAutoLinks,
                 })
             }
             className="h-9 rounded-full bg-[#0f2a5f] px-5 text-[13px] font-bold text-white"
@@ -1529,23 +1822,41 @@ function EditorBox({
     setRef,
     defaultHtml,
     placeholder,
+    onClick,
   }: {
     refObj?: React.RefObject<HTMLDivElement | null>;
     setRef?: (el: HTMLDivElement | null) => void;
     defaultHtml: string;
     placeholder: string;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   }) {
+    const innerRef = useRef<HTMLDivElement | null>(null);
+  
+    useEffect(() => {
+      if (!innerRef.current) return;
+  
+      innerRef.current.innerHTML = defaultHtml;
+    }, [defaultHtml]);
+  
     return (
       <div
         ref={(el) => {
-            if (refObj) refObj.current = el;
-            setRef?.(el);
+          innerRef.current = el;
+          if (refObj) refObj.current = el;
+          setRef?.(el);
         }}
+        onClick={onClick}
+        onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+          
+              document.execCommand("insertHTML", false, "<br>");
+            }
+          }}
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder}
         className="min-h-[130px] w-full rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
-        dangerouslySetInnerHTML={{ __html: defaultHtml }}
       />
     );
   }
@@ -1553,11 +1864,17 @@ function EditorBox({
   function EditorToolbar({
     runCommand,
     insertLink,
+    insertLawLink,
+    unlinkLawLink,
+    unlinkSelectedAutoLawLink,
     customColors,
     saveCustomColors,
   }: {
     runCommand: (command: string, value?: string) => void;
     insertLink: () => void;
+    insertLawLink: () => void;
+    unlinkLawLink: () => void;
+    unlinkSelectedAutoLawLink: () => void;
     customColors: string[];
     saveCustomColors: (colors: string[]) => void;
   }) {
@@ -1641,7 +1958,10 @@ function EditorBox({
             <ColorPalette
                 baseColors={baseColors}
                 customColors={customColors}
-                onNone={() => runCommand("removeFormat")}
+                onNone={() => {
+                    document.execCommand("hiliteColor", false, "transparent");
+                    document.execCommand("backColor", false, "transparent");
+                }}
                 onPick={(color) => runCommand("backColor", color)}
                 onAdd={addCustomColor}
                 onDelete={deleteCustomColor}
@@ -1653,6 +1973,9 @@ function EditorBox({
         <span className="mx-0.5 h-4 w-px bg-[#d7ddea]" />
   
         <ToolIcon onClick={insertLink}>URL</ToolIcon>
+        <ToolIcon onClick={insertLawLink}>법</ToolIcon>
+        <ToolIcon onClick={unlinkLawLink}>해제</ToolIcon>
+        <ToolIcon onClick={unlinkSelectedAutoLawLink}>자동해제</ToolIcon>
       </div>
     );
   }
@@ -2270,5 +2593,71 @@ function ChapterActionSheet({
           strokeLinejoin="round"
         />
       </svg>
+    );
+  }
+
+  function LawArticleModal({
+    article,
+    onClose,
+  }: {
+    article: LawArticle;
+    onClose: () => void;
+  }) {
+    return (
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-[70] flex items-end bg-black/25 backdrop-blur-[2px]"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="mx-auto max-h-[78svh] w-full max-w-[430px] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
+        >
+          <div className="flex items-start justify-between">
+            <span className="ml-1 translate-y-[4px] rounded-full bg-[#4b6cb7] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-white shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
+              {article.law_name}
+            </span>
+  
+            <button
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-[#dce2ee] bg-white text-[22px] leading-none text-[#8a94a6]"
+            >
+              ×
+            </button>
+          </div>
+  
+          <h2 className="mt-5 translate-x-[8px] text-[21px] font-extrabold leading-snug tracking-[-0.06em] text-[#111827]">
+            제{article.article_no}조
+            {article.article_title ? `(${article.article_title})` : ""}
+          </h2>
+  
+          <div className="mt-6 rounded-[22px] bg-[#f6f7fa] px-5 py-5">
+          <div className="space-y-3">
+            {article.article_text
+                .split("\n")
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, index) => (
+                <p
+                    key={index}
+                    className="text-[16px] font-medium leading-[1.8] tracking-[-0.04em] text-[#303236]"
+                >
+                    {line}
+                </p>
+                ))}
+            </div>
+          </div>
+  
+          {article.source_url && (
+            <a
+              href={article.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 block text-right text-[13px] font-bold text-[#0f2a5f]"
+            >
+              국가법령정보센터에서 보기
+            </a>
+          )}
+        </div>
+      </div>
     );
   }
