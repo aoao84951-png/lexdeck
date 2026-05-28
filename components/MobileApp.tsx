@@ -180,6 +180,7 @@ export default function MobileApp() {
   const [questionId, setQuestionId] = useState("");
   const [showAnswer, setShowAnswer] = useState(false);
   const [search, setSearch] = useState("");
+  const [questionSortOrder, setQuestionSortOrder] = useState<"latest" | "oldest">("oldest");
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
   const [actionChapterId, setActionChapterId] = useState<string | null>(null);
@@ -380,11 +381,11 @@ useEffect(() => {
 
   const visibleQuestions = useMemo(() => {
     const keyword = normalizeSearch(search);
-
-    return questions.filter((q) => {
+  
+    const filtered = questions.filter((q) => {
       const subject = subjects.find((s) => s.id === q.subjectId);
       const chapter = chapters.find((c) => c.id === q.chapterId);
-
+  
       const target = [
         subject?.name,
         chapter?.title,
@@ -398,14 +399,22 @@ useEffect(() => {
       ]
         .join(" ")
         .toLowerCase();
-        
-        const normalizedTarget = normalizeSearch(target);
-
-        if (keyword) return normalizedTarget.includes(keyword);
-
-        return q.chapterId === chapterId;
+  
+      const normalizedTarget = normalizeSearch(target);
+  
+      if (keyword) return normalizedTarget.includes(keyword);
+  
+      return q.chapterId === chapterId;
     });
-  }, [search, questions, subjects, chapters, chapterId]);
+  
+    return filtered.sort((a, b) => {
+      const aIndex = questions.findIndex((q) => q.id === a.id);
+      const bIndex = questions.findIndex((q) => q.id === b.id);
+  
+      if (questionSortOrder === "oldest") return aIndex - bIndex;
+      return bIndex - aIndex;
+    });
+  }, [search, questions, subjects, chapters, chapterId, questionSortOrder]);
 
   const groupedQuestions = useMemo(() => {
     return visibleQuestions.reduce((acc, q) => {
@@ -718,7 +727,13 @@ useEffect(() => {
           }}
           onDelete={screen === "detail" ? deleteSelectedQuestion : undefined}
           screenTitleFix={screen === "detail"}
-        />
+          sortOrder={questionSortOrder}
+          onSortChange={
+            screen === "questions"
+                ? (value) => setQuestionSortOrder(value)
+                : undefined
+            }
+          />
 
         {screen === "subjects" && (
             <div className="mt-6">
@@ -834,7 +849,10 @@ useEffect(() => {
                         </p>
                   
                         <div>
-                          {group.map((q, i) => (
+                        {group.map((q) => {
+                            const originalIndex = questions.findIndex((item) => item.id === q.id);
+
+                            return (
                             <button
                                 key={q.id}
                                 onClick={() => selectQuestion(q.id)}
@@ -846,7 +864,7 @@ useEffect(() => {
                                 <div>
                                     <div className="mb-2">
                                         <span className="rounded-full bg-[#eef2f8] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#0f2a5f]">
-                                        Q{i + 1}
+                                        Q{originalIndex + 1}
                                         </span>
                                     </div>
 
@@ -870,7 +888,8 @@ useEffect(() => {
                   
                               </div>
                             </button>
-                          ))}
+                            );
+                          })} 
                         </div>
                       </div>
                     );
@@ -891,6 +910,7 @@ useEffect(() => {
                 updateQuestion={updateQuestion}
                 onEdit={openEdit}
                 onOpenLawArticle={openLawArticle}
+                allQuestions={questions}
             />
           </div>
         )}
@@ -1059,6 +1079,8 @@ function MobileHeader({
     onAddFolder,
     chapterMode = false,
     screenTitleFix = false,
+    sortOrder,
+    onSortChange,
   }: {
     eyebrow: string;
     title: string;
@@ -1071,6 +1093,8 @@ function MobileHeader({
     onAddFolder?: () => void;
     chapterMode?: boolean;
     screenTitleFix?: boolean;
+    sortOrder?: "latest" | "oldest";
+    onSortChange?: (value: "latest" | "oldest") => void;
   }) {
     if (chapterMode) {
         return (
@@ -1191,6 +1215,28 @@ function MobileHeader({
           </div>
   
           <div className="flex shrink-0 items-center gap-0.5">
+          {onSortChange && (
+            <div className="relative h-8 w-8 shrink-0 translate-y-[3px]">
+                <select
+                value={sortOrder}
+                onChange={(e) => onSortChange(e.target.value as "latest" | "oldest")}
+                className="absolute inset-0 z-10 h-8 w-8 cursor-pointer appearance-none opacity-0"
+                aria-label="정렬"
+                >
+                <option value="latest">최신순</option>
+                <option value="oldest">오래된순</option>
+                </select>
+
+                <div className="pointer-events-none flex h-8 w-8 items-center justify-center text-[#8a94a6]">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8H20" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
+                    <circle cx="9" cy="8" r="2.7" fill="white" stroke="currentColor" strokeWidth="2.3" />
+                    <path d="M4 16H20" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
+                    <circle cx="15" cy="16" r="2.7" fill="white" stroke="currentColor" strokeWidth="2.3" />
+                </svg>
+                </div>
+            </div>
+            )}
           {addLabel && (
             <button
                 onClick={onAdd}
@@ -1349,6 +1395,7 @@ function MobileHeader({
     updateQuestion,
     onEdit,
     onOpenLawArticle,
+    allQuestions,
   }: {
     question?: Question;
     questions: Question[];
@@ -1358,12 +1405,16 @@ function MobileHeader({
     updateQuestion: (id: string, patch: Partial<Question>) => void;
     onEdit: () => void;
     onOpenLawArticle: (lawName: string, articleNo: string) => void;
+    allQuestions: Question[];
   }) {
     const detailTapStart = useRef<{ x: number; y: number } | null>(null);
   
     if (!question) return <Empty text="문제를 선택해줘." />;
   
     const currentIndex = questions.findIndex((q) => q.id === question.id);
+    const originalQuestionIndex = allQuestions.findIndex(
+        (q) => q.id === question.id
+      );
   
     const goPrev = () => {
         if (currentIndex <= 0) return;
@@ -1455,7 +1506,7 @@ function MobileHeader({
           <div className={question.memorized ? "opacity-40" : ""}>
           <div className="mb-3 flex items-center justify-between">
           <p className="text-[12px] font-bold text-[#8a94a6]">
-            Q{currentIndex + 1}.
+            Q{originalQuestionIndex + 1}.
           </p>
   
             
