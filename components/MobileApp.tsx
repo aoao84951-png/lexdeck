@@ -1423,7 +1423,7 @@ function MobileHeader({
   
           const target = e.target as HTMLElement;
   
-          if (target.closest("button, [data-law-name][data-article-no]")) {
+          if (target.closest("button, a, [data-law-name][data-article-no]")) {
             detailTapStart.current = null;
             return;
           }
@@ -1538,10 +1538,10 @@ function MobileHeader({
             <div className="mt-5">
               <p className="mb-3 text-[13px] font-bold text-[#8a94a6]">해설</p>
   
-              <div
+              <JustifiedText
                 className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
+                html={linkLawText(question.explanationHtml, question.disabledAutoLinks ?? [])}
                 onClick={handleLawClick}
-                dangerouslySetInnerHTML={{ __html: linkLawText(question.explanationHtml, question.disabledAutoLinks ?? []) }}
               />
               {(question.extraPoints ?? []).length > 0 && (
                 <div className="mt-6">
@@ -1560,24 +1560,20 @@ function MobileHeader({
                           )}
                       
                           {point.title && (
-                            <p
-                              className="text-[13px] font-bold text-[#111827]"
-                              onClick={handleLawClick}
-                              dangerouslySetInnerHTML={{
-                                __html: linkLawText(point.title, question.disabledAutoLinks ?? []),
-                              }}
+                            <JustifiedText
+                                className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
+                                html={linkLawText(point.title, question.disabledAutoLinks ?? [])}
+                                onClick={handleLawClick}
                             />
-                          )}
+                            )}
                         </div>
                       
                         {point.descriptionHtml && (
-                          <div
+                          <JustifiedText
                             className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
+                            html={linkLawText(point.descriptionHtml, question.disabledAutoLinks ?? [])}
                             onClick={handleLawClick}
-                            dangerouslySetInnerHTML={{
-                              __html: linkLawText(point.descriptionHtml, question.disabledAutoLinks ?? []),
-                            }}
-                          />
+                           />
                         )}
                       </div>
                     ))}
