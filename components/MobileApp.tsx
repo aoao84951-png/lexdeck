@@ -113,14 +113,14 @@ const stripEditorControls = (html: string) => {
     }
   
     return cleanedHtml.replace(
-      /([가-힣A-Za-z0-9·ㆍ「」()]{2,40})\s*제\s*(\d+)조/g,
-      (match, lawName, articleNo) => {
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조/g,
+      (match, prefix, lawName, articleNo) => {
         const text = `${lawName} 제${articleNo}조`;
         const key = makeAutoLinkKey(lawName, articleNo, text);
   
         if (disabledAutoLinks.includes(key)) return text;
   
-        return `<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link">${text}</span>`;
+        return `${prefix}<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link">${text}</span>`;
       }
     );
 };
@@ -1869,13 +1869,13 @@ const runCommand = (command: string, value?: string) => {
     const selectedText = selection.toString().trim();
   
     const regex =
-      /([가-힣A-Za-z0-9·ㆍ「」()]{2,40})\s*제\s*(\d+)조/g;
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조/g;
   
     let match;
   
     while ((match = regex.exec(selectedText)) !== null) {
-      const lawName = match[1];
-      const articleNo = match[2];
+      const lawName = match[2];
+      const articleNo = match[3];
       const text = `${lawName} 제${articleNo}조`;
   
       nextKeys.push(makeAutoLinkKey(lawName, articleNo, text));
