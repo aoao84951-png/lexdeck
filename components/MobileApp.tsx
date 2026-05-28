@@ -70,11 +70,26 @@ const stripEditorControls = (html: string) => {
       .replace(/<span[^>]*data-law-after="true"[^>]*>[\s\S]*?<\/span>/g, "");
   };
 
-  const cleanEditorHtml = (html: string) =>
-    stripEditorControls(html)
-      .replace(/\u200B/g, "")
-      .replace(/\sstyle="[^"]*"/g, "")
-      .replace(/\sclass="[^"]*"/g, "");
+  const cleanEditorHtml = (html: string) => {
+    const cleaned = stripEditorControls(html).replace(/\u200B/g, "");
+  
+    const div = document.createElement("div");
+    div.innerHTML = cleaned;
+  
+    div.querySelectorAll<HTMLElement>("*").forEach((el) => {
+      el.removeAttribute("class");
+  
+      const color = el.style.color;
+      const backgroundColor = el.style.backgroundColor;
+  
+      el.removeAttribute("style");
+  
+      if (color) el.style.color = color;
+      if (backgroundColor) el.style.backgroundColor = backgroundColor;
+    });
+  
+    return div.innerHTML;
+  };
 
   const normalizeQuestionHtml = (html: string) =>
   stripEditorControls(html)
