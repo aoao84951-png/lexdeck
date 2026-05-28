@@ -1552,7 +1552,7 @@ function MobileHeader({
                     <div className="space-y-3">
                     {(question.extraPoints ?? []).map((point, index) => (
                         <div key={index} className="rounded-2xl bg-[#f5f6fa] px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="-ml-0.5 flex items-center gap-2">
                           {point.category && (
                             <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
                               {point.category}
@@ -1944,7 +1944,7 @@ const runCommand = (command: string, value?: string) => {
                         updateExtraPoint(index, "category", e.target.value)
                         }
                         placeholder="유형"
-                        className="h-10 w-[92px] rounded-xl border border-[#dce2ee] px-3 text-[12px] outline-none"
+                        className="h-10 flex-1 rounded-xl border border-[#dce2ee] px-3 text-[12px] outline-none"
                     />
 
                     <button
