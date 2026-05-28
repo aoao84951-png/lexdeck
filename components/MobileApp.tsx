@@ -12,7 +12,16 @@ type Subject = {
     name: string;
     color: string;
 };
-type Chapter = { id: string; subjectId: string; parentId: string | null; title: string };
+
+type Chapter = {
+    id: string;
+    subjectId: string;
+    parentId: string | null;
+    title: string;
+    type?: "folder" | "chapter";
+    color?: string;
+};
+
 type ExtraPoint = {
   category: string;
   title: string;
@@ -188,6 +197,9 @@ export default function MobileApp() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [subjectFormOpen, setSubjectFormOpen] = useState(false);
+  const [folderFormOpen, setFolderFormOpen] = useState(false);
+  const [folderParentId, setFolderParentId] = useState<string | null>(null);
+  const [currentParentId, setCurrentParentId] = useState<string | null>(null);
   const [editingSubjectId, setEditingSubjectId] = useState<string | null>(null);
 
   const [isStandalone, setIsStandalone] = useState(false);
@@ -347,7 +359,15 @@ useEffect(() => {
   const selectedSubject = subjects.find((s) => s.id === subjectId);
   const selectedChapter = chapters.find((c) => c.id === chapterId);
   const selectedQuestion = questions.find((q) => q.id === questionId);
+
+  const currentFolder = currentParentId
+  ? chapters.find((c) => c.id === currentParentId)
+  : null;
+
   const subjectChapters = chapters.filter((c) => c.subjectId === subjectId);
+  const visibleChapters = subjectChapters.filter(
+    (c) => c.parentId === currentParentId
+  );
 
   const getDescendantChapterIds = (id: string): string[] => {
     const children = chapters.filter((c) => c.parentId === id);
@@ -420,6 +440,7 @@ useEffect(() => {
         subjectId,
         parentId,
         title: title.trim(),
+        type: "chapter",
       },
     ]);
   
@@ -431,30 +452,32 @@ useEffect(() => {
     setScreen("chapters");
   };
 
+  const addFolder = (parentId: string | null = null) => {
+    setFolderParentId(parentId);
+    setFolderFormOpen(true);
+  };
+
   const selectSubject = (id: string) => {
     setSubjectId(id);
-    const first = chapters.find((c) => c.subjectId === id);
-    if (first) setChapterId(first.id);
+    setCurrentParentId(null);
+    setChapterId("");
     setSearch("");
     setScreen("chapters");
   };
 
   const selectChapter = (id: string) => {
-    const hasChildren = chapters.some((c) => c.parentId === id);
+    const target = chapters.find((c) => c.id === id);
+    const isFolder = target?.type === "folder";
   
     setChapterId(id);
     setSearch("");
     setShowAnswer(false);
   
-    // 하위폴더가 있으면 문제목록으로 가지 않고 펼침/접힘
-    if (hasChildren) {
-      setExpandedIds((prev) =>
-        prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-      );
+    if (isFolder) {
+      setCurrentParentId(id);
       return;
     }
   
-    // 하위폴더가 없으면, 문제가 없어도 문제목록으로 들어감
     const first = questions.find((q) => q.chapterId === id);
     if (first) setQuestionId(first.id);
     else setQuestionId("");
@@ -572,7 +595,18 @@ useEffect(() => {
   };
 
   const goBackScreen = () => {
-    if (screen === "chapters") setScreen("subjects");
+    if (screen === "chapters") {
+      if (currentParentId) {
+        const current = chapters.find((c) => c.id === currentParentId);
+        setCurrentParentId(current?.parentId ?? null);
+        setChapterId(current?.parentId ?? "");
+        return;
+      }
+  
+      setScreen("subjects");
+      return;
+    }
+  
     if (screen === "questions") setScreen("chapters");
     if (screen === "detail") setScreen("questions");
   };
@@ -655,6 +689,7 @@ useEffect(() => {
           chapterMode={screen === "chapters"}
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
           onHome={screen !== "subjects" ? goHome : undefined}
+          onAddFolder={screen === "chapters" ? () => addFolder(currentParentId) : undefined}
           eyebrow={
             screen === "subjects"
               ? "LEXDECK"
@@ -668,7 +703,7 @@ useEffect(() => {
             screen === "subjects"
               ? "정은이의 스터디룸"
               : screen === "chapters"
-              ? selectedSubject?.name ?? "목차"
+              ? currentFolder?.title ?? selectedSubject?.name ?? "목차"
               : screen === "questions"
               ? selectedChapter?.title ?? "문제 목록"
               : ""
@@ -677,7 +712,7 @@ useEffect(() => {
           onBack={goBackScreen}
           onAdd={() => {
             if (screen === "subjects") addSubject();
-            if (screen === "chapters") addChapter(null);
+            if (screen === "chapters") addChapter(currentParentId);
             if (screen === "questions") openNew();
             if (screen === "detail") openEdit();
           }}
@@ -749,24 +784,25 @@ useEffect(() => {
 
         {screen === "chapters" && (
             <div className="mt-6">
-                {subjectChapters.length === 0 ? (
+                {visibleChapters.length === 0 ? (
                 <Empty text="등록된 목차가 없어." />
                 ) : (
-                <ChapterTree
-                    chapters={subjectChapters}
-                    selectedId={chapterId}
-                    expandedIds={expandedIds}
-                    onToggle={(id) =>
-                    setExpandedIds((prev) =>
-                        prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
-                    )
-                    }
-                    onSelect={selectChapter}
-                    onAddChild={addChapter}
-                    onOpenAction={setActionChapterId}
-                    longPressTimer={chapterLongPressTimer}
-                    didLongPress={didLongPressChapter}
-                />
+                    <ChapterTree
+                        chapters={subjectChapters}
+                        rootParentId={currentParentId}
+                        selectedId={chapterId}
+                        expandedIds={expandedIds}
+                        onToggle={(id) =>
+                            setExpandedIds((prev) =>
+                            prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+                            )
+                        }
+                        onSelect={selectChapter}
+                        onAddChild={addChapter}
+                        onOpenAction={setActionChapterId}
+                        longPressTimer={chapterLongPressTimer}
+                        didLongPress={didLongPressChapter}
+                    />
                 )}
             </div>
             )}
@@ -936,44 +972,78 @@ useEffect(() => {
         />
     )}
 
-    {subjectFormOpen && (
-    <SubjectForm
-      subject={subjects.find((s) => s.id === editingSubjectId)}
-      onClose={() => {
-        setSubjectFormOpen(false);
-        setEditingSubjectId(null);
-      }}
-      onSave={(data) => {
-        if (editingSubjectId) {
-          setSubjects((prev) =>
-            prev.map((s) =>
-              s.id === editingSubjectId
-                ? { ...s, ...data }
-                : s
-            )
-          );
-        } else {
-          const id = uid();
-  
-          setSubjects((prev) => [
-            ...prev,
-            {
-              id,
-              name: data.name,
-              color: data.color,
-            },
-          ]);
-  
-          setSubjectId(id);
-        }
-  
-        setSubjectFormOpen(false);
-        setEditingSubjectId(null);
-      }}
-    />
-  )}
-  </>
-  );
+{subjectFormOpen && (
+  <SubjectForm
+    subject={subjects.find((s) => s.id === editingSubjectId)}
+    onClose={() => {
+      setSubjectFormOpen(false);
+      setEditingSubjectId(null);
+    }}
+    onSave={(data) => {
+      if (editingSubjectId) {
+        setSubjects((prev) =>
+          prev.map((s) =>
+            s.id === editingSubjectId ? { ...s, ...data } : s
+          )
+        );
+      } else {
+        const id = uid();
+
+        setSubjects((prev) => [
+          ...prev,
+          {
+            id,
+            name: data.name,
+            color: data.color,
+          },
+        ]);
+
+        setSubjectId(id);
+      }
+
+      setSubjectFormOpen(false);
+      setEditingSubjectId(null);
+    }}
+  />
+)}
+
+{folderFormOpen && (
+  <FolderForm
+    onClose={() => {
+      setFolderFormOpen(false);
+      setFolderParentId(null);
+    }}
+    onSave={(data) => {
+      const id = uid();
+
+      setChapters((prev) => [
+        ...prev,
+        {
+          id,
+          subjectId,
+          parentId: folderParentId,
+          title: data.name,
+          type: "folder",
+          color: data.color,
+        },
+      ]);
+
+      if (folderParentId) {
+        setExpandedIds((prev) =>
+          prev.includes(folderParentId) ? prev : [...prev, folderParentId]
+        );
+      }
+
+      setCurrentParentId(id);
+      setChapterId(id);
+
+      setFolderFormOpen(false);
+      setFolderParentId(null);
+    }}
+  />
+)}
+</>
+);
 }
 
 
@@ -986,6 +1056,7 @@ function MobileHeader({
     addLabel,
     onDelete,
     onHome,
+    onAddFolder,
     chapterMode = false,
     screenTitleFix = false,
   }: {
@@ -997,6 +1068,7 @@ function MobileHeader({
     addLabel: string;
     onDelete?: () => void;
     onHome?: () => void;
+    onAddFolder?: () => void;
     chapterMode?: boolean;
     screenTitleFix?: boolean;
   }) {
@@ -1042,15 +1114,31 @@ function MobileHeader({
                 )}
               </div>
       
-              {addLabel && (
+              <div className="flex shrink-0 items-center gap-2">
+                {onAddFolder && (
+                    <button
+                    onClick={onAddFolder}
+                    className="relative flex h-[30px] w-[34px] translate-y-[3.5px] items-center justify-center active:scale-95"
+                    aria-label="폴더 추가"
+                    >
+                    <FolderIcon size={18} color="#0f2a5f" />
+
+                    <span className="absolute bottom-[3px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#0f2a5f] text-white">
+                        <span className="translate-y-[-1px] text-[12px] font-bold leading-none">
+                            +
+                        </span>
+                    </span>
+                    </button>
+                )}
+
                 <button
                     onClick={onAdd}
-                    className="h-[30px] shrink-0 translate-y-[3.5px] rounded-full bg-[#0f2a5f] px-3 text-[11px] font-semibold text-white active:scale-95"
-                    aria-label="추가"
-                >
-                    + 추가
+                    className="flex h-[30px] w-[34px] translate-y-[3.5px] items-center justify-center active:scale-95"
+                    aria-label="목차 추가"
+                    >
+                    <ListAddIcon />
                 </button>
-              )}
+              </div>
             </div>
           </header>
         );
@@ -1134,16 +1222,17 @@ function MobileHeader({
 
   function ChapterTree({
     chapters,
+    rootParentId,
     selectedId,
     expandedIds,
     onToggle,
     onSelect,
-    onAddChild,
     onOpenAction,
     longPressTimer,
     didLongPress,
   }: {
     chapters: Chapter[];
+    rootParentId: string | null;
     selectedId: string;
     expandedIds: string[];
     onToggle: (id: string) => void;
@@ -1161,6 +1250,7 @@ function MobileHeader({
           const hasChildren = children.length > 0;
           const open = expandedIds.includes(c.id);
           const selected = selectedId === c.id;
+          const isFolder = c.type === "folder";
           const isTop = depth === 0;
   
           return (
@@ -1175,6 +1265,11 @@ function MobileHeader({
                   onClick={() => {
                     if (didLongPress.current) {
                       didLongPress.current = false;
+                      return;
+                    }
+                  
+                    if (!isFolder && hasChildren) {
+                      onToggle(c.id);
                       return;
                     }
                   
@@ -1205,26 +1300,30 @@ function MobileHeader({
                   }}
                   className={`min-w-0 flex-1 truncate text-left tracking-[-0.03em] ${
                     selected ? "text-[#0f2a5f]" : "text-[#303236]"
-                  } ${isTop ? "text-[17px]" : "text-[15px]"} ${
-                    selected ? "font-bold" : isTop ? "font-semibold" : "font-medium"
+                  } ${isFolder ? "text-[15px]" : isTop ? "text-[17px]" : "text-[15px]"} ${
+                    isFolder ? "font-semibold" : selected ? "font-bold" : isTop ? "font-semibold" : "font-medium"
                   }`}
                 >
-                  {c.title}
+                  <span className={isFolder ? "flex min-w-0 items-center gap-3" : "flex min-w-0 items-center gap-2"}>
+                    {isFolder && <FolderIcon color={c.color || "#4b6cb7"} />}
+  
+                    <span className="truncate">{c.title}</span>
+                  </span>
                 </button>
   
                 {hasChildren ? (
-                    <button
-                        onClick={(e) => {
-                        e.stopPropagation();
-                        onToggle(c.id);
-                        }}
-                        className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0f2a5f] text-white active:scale-95"
-                        aria-label={open ? "접기" : "펼치기"}
-                    >
-                        <ChevronToggle open={open} />
-                    </button>
-                    ) : (
-                    <span className="ml-2 h-7 w-7 shrink-0" />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggle(c.id);
+                    }}
+                    className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0f2a5f] text-white active:scale-95"
+                    aria-label={open ? "접기" : "펼치기"}
+                  >
+                    <ChevronToggle open={open} />
+                  </button>
+                ) : (
+                  <span className="ml-2 h-7 w-7 shrink-0" />
                 )}
               </div>
   
@@ -1238,7 +1337,7 @@ function MobileHeader({
         });
     };
   
-    return <div>{render(null, 0)}</div>;
+    return <div>{render(rootParentId, 0)}</div>;
   }
 
   function MobileDetail({
@@ -2501,6 +2600,109 @@ function ChapterActionSheet({
     );
   }
 
+  function FolderForm({
+    onClose,
+    onSave,
+  }: {
+    onClose: () => void;
+    onSave: (data: { name: string; color: string }) => void;
+  }) {
+    const presetColors = [
+      "#4b6cb7",
+      "#9b8bd8",
+      "#d98b8b",
+      "#83bd95",
+      "#f1d466",
+      "#6bc7c1",
+      "#f29cc0",
+      "#8b95a7",
+    ];
+  
+    const [name, setName] = useState("");
+    const [color, setColor] = useState("#4b6cb7");
+  
+    return (
+      <div className="fixed inset-0 z-50 flex items-end bg-black/25">
+        <div className="mx-auto w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
+          <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
+            폴더 추가
+          </p>
+  
+          <div className="mt-5">
+            <p className="mb-2 text-[12px] font-bold text-[#596275]">
+              폴더명
+            </p>
+  
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="폴더명을 입력해줘."
+              className="h-11 w-full rounded-2xl border border-[#dce2ee] px-4 text-[14px] outline-none"
+            />
+          </div>
+  
+          <div className="mt-5">
+            <p className="mb-3 text-[12px] font-bold text-[#596275]">
+              색상
+            </p>
+  
+            <div className="flex flex-wrap gap-3">
+              {presetColors.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setColor(preset)}
+                  className={`h-8 w-8 rounded-full transition-all ${
+                    color === preset ? "scale-110 ring-2 ring-[#111827]" : ""
+                  }`}
+                  style={{ backgroundColor: preset }}
+                />
+              ))}
+            </div>
+  
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-10 w-12 rounded-xl border border-[#dce2ee]"
+              />
+  
+              <input
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-10 flex-1 rounded-xl border border-[#dce2ee] px-3 text-[13px] outline-none"
+              />
+            </div>
+          </div>
+  
+          <div className="mt-6 flex gap-2">
+            <button
+              onClick={onClose}
+              className="h-11 flex-1 rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
+            >
+              취소
+            </button>
+  
+            <button
+              onClick={() => {
+                if (!name.trim()) return;
+  
+                onSave({
+                  name: name.trim(),
+                  color,
+                });
+              }}
+              className="h-11 flex-1 rounded-2xl bg-[#0f2a5f] text-[13px] font-bold text-white"
+            >
+              저장
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function SubjectForm({
     subject,
     onClose,
@@ -2633,6 +2835,58 @@ function ChapterActionSheet({
       >
         <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z" />
       </svg>
+    );
+  }
+
+  function ListAddIcon({
+    size = 26,
+    color = "#0f2a5f",
+    className = "",
+  }: {
+    size?: number;
+    color?: string;
+    className?: string;
+  }) {
+    return (
+      <div
+        className={`relative flex items-center justify-center ${className}`}
+        style={{
+          width: size,
+          height: size,
+        }}
+      >
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M6 7.5H16"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M6 12H16"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M6 16.5H13"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+  
+        <span className="absolute bottom-[1px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#0f2a5f] text-white">
+            <span className="translate-y-[-1px] text-[12px] font-bold leading-none">
+                +
+            </span>
+        </span>
+      </div>
     );
   }
 
