@@ -1552,7 +1552,7 @@ function MobileHeader({
                     <div className="space-y-3">
                     {(question.extraPoints ?? []).map((point, index) => (
                         <div key={index} className="rounded-2xl bg-[#f5f6fa] px-4 py-3">
-                        <div className="-ml-0.5 flex items-center gap-2">
+                        <div className="-ml-1 flex items-center gap-2">
                           {point.category && (
                             <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
                               {point.category}
