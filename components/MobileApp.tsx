@@ -62,7 +62,20 @@ const stripEditorControls = (html: string) => {
   };
 
   const cleanEditorHtml = (html: string) =>
-    stripEditorControls(html).replace(/\u200B/g, "");
+    stripEditorControls(html)
+      .replace(/\u200B/g, "")
+      .replace(/\sstyle="[^"]*"/g, "")
+      .replace(/\sclass="[^"]*"/g, "");
+
+  const normalizeQuestionHtml = (html: string) =>
+  stripEditorControls(html)
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/div>\s*<div[^>]*>/gi, " ")
+    .replace(/<\/p>\s*<p[^>]*>/gi, " ")
+    .replace(/<\/?(div|p)[^>]*>/gi, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   const unwrapLawAutoLinks = (html: string) => {
     if (!html) return "";
@@ -182,8 +195,10 @@ export default function MobileApp() {
   const [lawModalOpen, setLawModalOpen] = useState(false);
   const [lawArticle, setLawArticle] = useState<LawArticle | null>(null);
   const lawCacheRef = useRef<Record<string, LawArticle>>({});
+  const [reloadTick, setReloadTick] = useState(0);
 
   const loadedRef = useRef(false);
+  const STORAGE_KEY = "lexdeck-navigation-state";
 
   const isHistoryMoving = useRef(false);
   const isFirstHistoryState = useRef(true);
@@ -211,6 +226,7 @@ export default function MobileApp() {
     }
   
     window.history.pushState(state, "", window.location.href);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds]);
   
   useEffect(() => {
@@ -224,7 +240,7 @@ export default function MobileApp() {
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
       setQuestionId(state.questionId || "");
-      setShowAnswer(false);
+      setShowAnswer(state.showAnswer ?? false);
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
   
@@ -243,7 +259,25 @@ export default function MobileApp() {
     };
   }, []);
 
-
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+  
+    if (!saved) return;
+  
+    try {
+      const state = JSON.parse(saved);
+  
+      setScreen(state.screen || "subjects");
+      setSubjectId(state.subjectId || "");
+      setChapterId(state.chapterId || "");
+      setQuestionId(state.questionId || "");
+      setShowAnswer(state.showAnswer ?? false);
+      setSearch(state.search || "");
+      setExpandedIds(state.expandedIds || []);
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
 
 useEffect(() => {
   const standalone =
@@ -254,7 +288,7 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  const loadData = async () => {
+    const loadData = async () => {
     const { data, error } = await supabase
       .from("ox_data")
       .select("*")
@@ -277,7 +311,7 @@ useEffect(() => {
   };
 
   loadData();
-}, []);
+}, [reloadTick]);
 
 useEffect(() => {
   if (!loadedRef.current) return;
@@ -596,7 +630,7 @@ useEffect(() => {
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
             {isStandalone && (
             <button
-                onClick={() => window.location.reload()}
+                onClick={() => setReloadTick((prev) => prev + 1)}
                 className="fixed bottom-16 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
                 aria-label="새로고침"
             >
@@ -782,19 +816,19 @@ useEffect(() => {
 
                                     {search ? (
                                         <p
-                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] break-keep ${
+                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
                                             q.favorite ? "text-[#d95c5c]" : "text-[#111827]"
                                             }`}
                                         >
                                             {highlightKeyword(stripHtml(q.textHtml), search)}
                                         </p>
                                         ) : (
-                                        <div
-                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] break-keep ${
-                                            q.favorite ? "text-[#d95c5c]" : "text-[#111827]"
+                                            <JustifiedText
+                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
+                                              q.favorite ? "text-[#d95c5c]" : "text-[#111827]"
                                             }`}
-                                            dangerouslySetInnerHTML={{ __html: q.textHtml }}
-                                        />
+                                            html={linkLawText(normalizeQuestionHtml(q.textHtml), q.disabledAutoLinks ?? [])}
+                                          />
                                     )}
                                 </div>
                   
@@ -1233,15 +1267,13 @@ function MobileHeader({
     const currentIndex = questions.findIndex((q) => q.id === question.id);
   
     const goPrev = () => {
-      if (currentIndex <= 0) return;
-      setQuestionId(questions[currentIndex - 1].id);
-      setShowAnswer(false);
+        if (currentIndex <= 0) return;
+        setQuestionId(questions[currentIndex - 1].id);
     };
-  
+      
     const goNext = () => {
-      if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
-      setQuestionId(questions[currentIndex + 1].id);
-      setShowAnswer(false);
+        if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
+        setQuestionId(questions[currentIndex + 1].id);
     };
 
     const handleLawClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1331,12 +1363,15 @@ function MobileHeader({
           </div>
   
           <div className="flex min-h-[72px] items-center justify-center py-3">
-            <div
-              className={`w-full text-center text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
-                question.favorite ? "text-[#d95c5c]" : "text-[#111827]"
-              }`}
-              onClick={handleLawClick}
-              dangerouslySetInnerHTML={{ __html: linkLawText(question.textHtml, question.disabledAutoLinks ?? []) }}
+            <JustifiedText
+                html={linkLawText(
+                    normalizeQuestionHtml(question.textHtml),
+                    question.disabledAutoLinks ?? []
+                )}
+                className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
+                    question.favorite ? "text-[#d95c5c]" : "text-[#111827]"
+                }`}
+                onClick={handleLawClick}
             />
           </div>
           </div>
@@ -1454,6 +1489,33 @@ function MobileHeader({
           </section>
         )}
       </div>
+    );
+  }
+
+  function JustifiedText({
+    html,
+    className,
+    onClick,
+  }: {
+    html: string;
+    className?: string;
+    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+  }) {
+    return (
+      <div
+        className={className}
+        onClick={onClick}
+        style={{
+          textAlign: "justify",
+          textAlignLast: "left",
+          wordBreak: "break-all",
+          overflowWrap: "normal",
+          whiteSpace: "normal",
+        }}
+        dangerouslySetInnerHTML={{
+          __html: html,
+        }}
+      />
     );
   }
 
