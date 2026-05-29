@@ -229,7 +229,6 @@ export default function MobileApp() {
   const [lawModalOpen, setLawModalOpen] = useState(false);
   const [lawArticle, setLawArticle] = useState<LawArticle | null>(null);
   const lawCacheRef = useRef<Record<string, LawArticle>>({});
-  const [reloadTick, setReloadTick] = useState(0);
 
   const loadedRef = useRef(false);
   const STORAGE_KEY = "lexdeck-navigation-state";
@@ -345,7 +344,7 @@ useEffect(() => {
   };
 
   loadData();
-}, [reloadTick]);
+}, []);
 
 useEffect(() => {
   if (!loadedRef.current) return;
@@ -694,7 +693,7 @@ useEffect(() => {
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
             {isStandalone && (
             <button
-                onClick={() => setReloadTick((prev) => prev + 1)}
+                onClick={() => window.location.reload()}
                 className="fixed bottom-16 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
                 aria-label="새로고침"
             >
