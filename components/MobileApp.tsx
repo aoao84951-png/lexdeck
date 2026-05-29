@@ -102,48 +102,91 @@ const stripEditorControls = (html: string) => {
     .trim();
 
   const unwrapLawAutoLinks = (html: string) => {
-    if (!html) return "";
-  
-    const div = document.createElement("div");
-    div.innerHTML = stripEditorControls(html);
-  
-    div.querySelectorAll(".law-auto-link").forEach((el) => {
-      el.replaceWith(document.createTextNode(el.textContent ?? ""));
-    });
-  
-    div.querySelectorAll("[data-law-after]").forEach((el) => {
-      el.remove();
-    });
-  
-    return div.innerHTML;
-  };
+  if (!html) return "";
 
-  const makeLawLinksBreakable = (html: string) =>
-    html.replace(
-      /<span([^>]*data-law-name="[^"]*"[^>]*)>/g,
-      `<span$1 style="display:inline;white-space:normal;word-break:break-all;overflow-wrap:anywhere;">`
-    );
+  const div = document.createElement("div");
+  div.innerHTML = stripEditorControls(html);
+
+  div.querySelectorAll("[data-auto-link-key]").forEach((el) => {
+    el.replaceWith(document.createTextNode(el.textContent ?? ""));
+  });
+
+  div.querySelectorAll("[data-law-after]").forEach((el) => {
+    el.remove();
+  });
+
+  return div.innerHTML;
+};
+
+const makeLawLinksBreakable = (html: string) => {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+
+  div.querySelectorAll<HTMLElement>("[data-law-name][data-article-no]").forEach((el) => {
+    el.style.display = "inline";
+    el.style.whiteSpace = "normal";
+    el.style.wordBreak = "break-all";
+    el.style.overflowWrap = "anywhere";
+
+    el.style.color = "#0f2a5f";
+    el.style.fontWeight = "800";
+    el.style.textDecoration = "underline";
+    el.style.textUnderlineOffset = "3px";
+    el.style.cursor = "pointer";
+  });
+
+  return div.innerHTML;
+};
   
   const linkLawText = (html: string, disabledAutoLinks: string[] = []) => {
-    if (!html) return "";
-  
-    const cleanedHtml = stripEditorControls(html);
-  
-    if (cleanedHtml.includes("data-law-name=")) {
-        return makeLawLinksBreakable(cleanedHtml);
-    }
-  
-    return cleanedHtml.replace(
-      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조/g,
-      (match, prefix, lawName, articleNo) => {
-        const text = `${lawName} 제${articleNo}조`;
-        const key = makeAutoLinkKey(lawName, articleNo, text);
-  
-        if (disabledAutoLinks.includes(key)) return text;
-  
-        return `${prefix}<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link" style="display:inline;white-space:normal;word-break:break-all;overflow-wrap:anywhere;">${text}</span>`;
+  if (!html) return "";
+
+  const cleanedHtml = stripEditorControls(html);
+
+  const div = document.createElement("div");
+  div.innerHTML = cleanedHtml;
+
+  const walker = document.createTreeWalker(div, NodeFilter.SHOW_TEXT);
+
+  const textNodes: Text[] = [];
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const parent = node.parentElement;
+
+    if (parent?.closest("[data-law-name][data-article-no]")) continue;
+
+    textNodes.push(node);
+  }
+
+  textNodes.forEach((node) => {
+    const textValue = node.nodeValue ?? "";
+
+    const replaced = textValue.replace(
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조(?:의\s*(\d+))?/g,
+      (match, prefix, lawName, articleNo, subNo) => {
+        const finalArticleNo = subNo ? `${articleNo}조의${subNo}` : articleNo;
+
+        const text = subNo
+          ? `${lawName} 제${articleNo}조의${subNo}`
+          : `${lawName} 제${articleNo}조`;
+
+        const key = makeAutoLinkKey(lawName, finalArticleNo, text);
+
+        if (disabledAutoLinks.includes(key)) return `${prefix}${text}`;
+
+        return `${prefix}<span role="button" data-law-name="${lawName}" data-article-no="${finalArticleNo}" data-auto-link-key="${key}" class="law-auto-link" style="display:inline;white-space:normal;word-break:break-all;overflow-wrap:anywhere;">${text}</span>`;
       }
     );
+
+    if (replaced !== textValue) {
+      const temp = document.createElement("span");
+      temp.innerHTML = replaced;
+      node.replaceWith(...Array.from(temp.childNodes));
+    }
+  });
+
+  return makeLawLinksBreakable(div.innerHTML);
 };
 
 const normalizeSearch = (value: string) =>
@@ -662,29 +705,34 @@ useEffect(() => {
   };
 
   const openLawArticle = async (lawName: string, articleNo: string) => {
-    const key = `${lawName}-${articleNo}`;
+    const candidates = articleNo.includes("조의")
+      ? [articleNo, `제${articleNo}`]
+      : [articleNo];
   
-    if (lawCacheRef.current[key]) {
-      setLawArticle(lawCacheRef.current[key]);
-      setLawModalOpen(true);
-      return;
+    for (const candidate of candidates) {
+      const key = `${lawName}-${candidate}`;
+  
+      if (lawCacheRef.current[key]) {
+        setLawArticle(lawCacheRef.current[key]);
+        setLawModalOpen(true);
+        return;
+      }
+  
+      const res = await fetch(
+        `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(candidate)}`
+      );
+  
+      const data = await res.json();
+  
+      if (data.success) {
+        lawCacheRef.current[key] = data.article;
+        setLawArticle(data.article);
+        setLawModalOpen(true);
+        return;
+      }
     }
   
-    const res = await fetch(
-      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
-    );
-  
-    const data = await res.json();
-  
-    if (!data.success) {
-      alert("조문을 찾지 못했어.");
-      return;
-    }
-  
-    lawCacheRef.current[key] = data.article;
-  
-    setLawArticle(data.article);
-    setLawModalOpen(true);
+    alert("조문을 찾지 못했어.");
   };
 
   return (
@@ -1819,7 +1867,7 @@ const runCommand = (command: string, value?: string) => {
     const lawName = prompt("법령명을 입력해줘. 예: 민법, 형법, 변호사법");
     if (!lawName?.trim()) return;
 
-    const articleNo = prompt("조문 번호를 입력해줘. 예: 750");
+    const articleNo = prompt("조문 번호를 입력해줘. 예: 750, 14의2, 14조의2");
     if (!articleNo?.trim()) return;
 
     const selectedText = selection.toString();
@@ -1934,16 +1982,22 @@ const runCommand = (command: string, value?: string) => {
     const selectedText = selection.toString().trim();
   
     const regex =
-      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조/g;
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조(?:의\s*(\d+))?/g;
   
     let match;
   
     while ((match = regex.exec(selectedText)) !== null) {
       const lawName = match[2];
       const articleNo = match[3];
-      const text = `${lawName} 제${articleNo}조`;
-  
-      nextKeys.push(makeAutoLinkKey(lawName, articleNo, text));
+      const subNo = match[4];
+
+      const finalArticleNo = subNo ? `${articleNo}조의${subNo}` : articleNo;
+
+      const text = subNo
+        ? `${lawName} 제${articleNo}조의${subNo}`
+        : `${lawName} 제${articleNo}조`;
+
+      nextKeys.push(makeAutoLinkKey(lawName, finalArticleNo, text));
     }
   
     if (nextKeys.length === 0) {
