@@ -117,6 +117,12 @@ const stripEditorControls = (html: string) => {
   
     return div.innerHTML;
   };
+
+  const makeLawLinksBreakable = (html: string) =>
+    html.replace(
+      /<span([^>]*data-law-name="[^"]*"[^>]*)>/g,
+      `<span$1 style="display:inline;white-space:normal;word-break:break-all;overflow-wrap:anywhere;">`
+    );
   
   const linkLawText = (html: string, disabledAutoLinks: string[] = []) => {
     if (!html) return "";
@@ -124,7 +130,7 @@ const stripEditorControls = (html: string) => {
     const cleanedHtml = stripEditorControls(html);
   
     if (cleanedHtml.includes("data-law-name=")) {
-      return cleanedHtml;
+        return makeLawLinksBreakable(cleanedHtml);
     }
   
     return cleanedHtml.replace(
@@ -135,7 +141,7 @@ const stripEditorControls = (html: string) => {
   
         if (disabledAutoLinks.includes(key)) return text;
   
-        return `${prefix}<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link">${text}</span>`;
+        return `${prefix}<span role="button" data-law-name="${lawName}" data-article-no="${articleNo}" data-auto-link-key="${key}" class="law-auto-link" style="display:inline;white-space:normal;word-break:break-all;overflow-wrap:anywhere;">${text}</span>`;
       }
     );
 };
@@ -1839,25 +1845,62 @@ const runCommand = (command: string, value?: string) => {
   };
 
   const unlinkLawLink = () => {
-    
     const selection = window.getSelection();
-    if (!selection) return;
-
-    const node = selection.anchorNode;
-    const element = node instanceof HTMLElement ? node : node?.parentElement;
-
-    const lawButton = element?.closest(
-      "[data-law-name][data-article-no]"
-    ) as HTMLElement | null;
-
-    if (!lawButton) {
-      alert("해제할 법령 링크 안에 커서를 두거나 링크를 선택해줘.");
+  
+    if (!selection || selection.rangeCount === 0) {
+      alert("해제할 링크 안에 커서를 두거나 링크를 선택해줘.");
       return;
     }
-
-    const text = lawButton.textContent ?? "";
-
-    lawButton.replaceWith(document.createTextNode(text));
+  
+    const range = selection.getRangeAt(0);
+    const node = selection.anchorNode;
+    const element = node instanceof HTMLElement ? node : node?.parentElement;
+  
+    // 1. 직접 추가한 URL 링크 해제
+    const activeAnchor = element?.closest("a") as HTMLAnchorElement | null;
+  
+    const selectedHtml = document.createElement("div");
+    selectedHtml.appendChild(range.cloneContents());
+  
+    const hasSelectedAnchor = !!selectedHtml.querySelector("a");
+  
+    if (activeAnchor || hasSelectedAnchor) {
+      document.execCommand("unlink");
+      return;
+    }
+  
+    // 2. 법령 링크 해제
+    const activeLawButton = element?.closest(
+      "[data-law-name][data-article-no]"
+    ) as HTMLElement | null;
+  
+    if (activeLawButton) {
+      const text = activeLawButton.textContent ?? "";
+      activeLawButton.replaceWith(document.createTextNode(text));
+      return;
+    }
+  
+    // 3. 드래그한 범위 안의 법령 링크 해제
+    const root =
+      range.commonAncestorContainer instanceof HTMLElement
+        ? range.commonAncestorContainer
+        : range.commonAncestorContainer.parentElement;
+  
+    const lawLinks = Array.from(
+      root?.querySelectorAll("[data-law-name][data-article-no]") ?? []
+    ) as HTMLElement[];
+  
+    const selectedLawLinks = lawLinks.filter((el) => range.intersectsNode(el));
+  
+    if (selectedLawLinks.length > 0) {
+      selectedLawLinks.forEach((el) => {
+        const text = el.textContent ?? "";
+        el.replaceWith(document.createTextNode(text));
+      });
+      return;
+    }
+  
+    alert("해제할 링크 안에 커서를 두거나 링크를 선택해줘.");
   };
 
   const unlinkSelectedAutoLawLink = () => {
