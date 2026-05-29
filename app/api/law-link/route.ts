@@ -79,12 +79,32 @@ const extractArticleText = (article: any): string => {
     return lines.filter(Boolean).join("\n");
 };
 
+const normalizeArticleNo = (value: string) =>
+  value
+    .replace(/^제/, "")
+    .replace(/조의/g, "의")
+    .replace(/조/g, "")
+    .replace(/\s+/g, "")
+    .replace(/^0+(\d)/, "$1")
+    .trim();
+
+const makeArticleNo = (article: any) => {
+  const mainNo = normalizeArticleNo(String(article?.조문번호 ?? ""));
+
+  const subNo =
+    normalizeArticleNo(String(article?.조문가지번호 ?? "")) ||
+    normalizeArticleNo(String(article?.조문가지번호?._text ?? ""));
+
+  return subNo && subNo !== "0" ? `${mainNo}의${subNo}` : mainNo;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
     const lawName = searchParams.get("lawName")?.trim();
     const articleNo = searchParams.get("articleNo")?.trim();
+    const normalizedArticleNo = articleNo ? normalizeArticleNo(articleNo) : "";
 
     if (!lawName || !articleNo) {
       return NextResponse.json({
@@ -98,7 +118,7 @@ export async function GET(req: NextRequest) {
       .from("law_articles")
       .select("*")
       .eq("law_name", lawName)
-      .eq("article_no", articleNo)
+      .eq("article_no", normalizedArticleNo)
       .maybeSingle();
 
     if (existing) {
@@ -162,13 +182,13 @@ export async function GET(req: NextRequest) {
       .map((article: any) => ({
         law_name: lawName,
         law_id: lawId,
-        article_no: String(article.조문번호).trim(),
-        article_key: `${lawName}-${String(article.조문번호).trim()}`,
+        article_no: makeArticleNo(article),
+        article_key: `${lawName}-${makeArticleNo(article)}`,
         article_title: article.조문제목 || null,
         article_text: extractArticleText(article),
         source_url: `https://www.law.go.kr/법령/${encodeURIComponent(
           lawName
-        )}/제${String(article.조문번호).trim()}조`,
+        )}/제${makeArticleNo(article).replace("의", "조의")}조`,
       }));
 
     if (rows.length === 0) {
@@ -206,7 +226,7 @@ export async function GET(req: NextRequest) {
       .from("law_articles")
       .select("*")
       .eq("law_name", lawName)
-      .eq("article_no", articleNo)
+      .eq("article_no", normalizedArticleNo)
       .maybeSingle();
 
     if (!article) {
