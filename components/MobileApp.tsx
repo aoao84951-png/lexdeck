@@ -137,6 +137,11 @@ const makeLawLinksBreakable = (html: string) => {
 
   return div.innerHTML;
 };
+
+const formatArticleNo = (articleNo: string) =>
+  articleNo.includes("의")
+    ? `${articleNo.replace("의", "조의")}`
+    : `${articleNo}조`;
   
   const linkLawText = (html: string, disabledAutoLinks: string[] = []) => {
   if (!html) return "";
@@ -3191,7 +3196,7 @@ function ChapterActionSheet({
           </div>
   
           <h2 className="mt-5 translate-x-[8px] text-[21px] font-extrabold leading-snug tracking-[-0.06em] text-[#111827]">
-            제{article.article_no}조
+            제{formatArticleNo(article.article_no)}
             {article.article_title ? `(${article.article_title})` : ""}
           </h2>
   
