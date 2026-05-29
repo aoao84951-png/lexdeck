@@ -871,7 +871,11 @@ useEffect(() => {
                   
                         <div>
                         {group.map((q) => {
-                            const originalIndex = questions.findIndex((item) => item.id === q.id);
+                            const chapterQuestions = questions.filter(
+                              (item) => item.chapterId === q.chapterId
+                            );
+                            
+                            const originalIndex = chapterQuestions.findIndex((item) => item.id === q.id);
 
                             return (
                             <button
@@ -1433,9 +1437,13 @@ function MobileHeader({
     if (!question) return <Empty text="문제를 선택해줘." />;
   
     const currentIndex = questions.findIndex((q) => q.id === question.id);
-    const originalQuestionIndex = allQuestions.findIndex(
-        (q) => q.id === question.id
-      );
+    const chapterQuestions = allQuestions.filter(
+      (q) => q.chapterId === question.chapterId
+    );
+    
+    const originalQuestionIndex = chapterQuestions.findIndex(
+      (q) => q.id === question.id
+    );
   
     const goPrev = () => {
         if (currentIndex <= 0) return;
