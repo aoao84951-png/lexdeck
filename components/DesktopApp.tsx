@@ -1015,9 +1015,9 @@ useEffect(() => {
           </>
         )}
 
-        {screen === "detail" && (
-            <div className="mx-auto mt-5 max-w-[820px]">
-            <MobileDetail
+            {screen === "detail" && (
+            <div className="mt-5 w-full">
+                <MobileDetail
                 question={selectedQuestion}
                 questions={visibleQuestions}
                 setQuestionId={setQuestionId}
@@ -1027,9 +1027,9 @@ useEffect(() => {
                 onEdit={openEdit}
                 onOpenLawArticle={openLawArticle}
                 allQuestions={questions}
-            />
-          </div>
-        )}
+                />
+            </div>
+            )}
         </div>
        </div>
       </div>
