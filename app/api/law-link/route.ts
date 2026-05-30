@@ -79,24 +79,45 @@ const extractArticleText = (article: any): string => {
     return lines.filter(Boolean).join("\n");
 };
 
-const normalizeArticleNo = (value: string) =>
-  value
-    .replace(/^제/, "")
-    .replace(/조의/g, "의")
-    .replace(/조/g, "")
-    .replace(/\s+/g, "")
-    .replace(/^0+(\d)/, "$1")
-    .trim();
-
-const makeArticleNo = (article: any) => {
-  const mainNo = normalizeArticleNo(String(article?.조문번호 ?? ""));
-
-  const subNo =
-    normalizeArticleNo(String(article?.조문가지번호 ?? "")) ||
-    normalizeArticleNo(String(article?.조문가지번호?._text ?? ""));
-
-  return subNo && subNo !== "0" ? `${mainNo}의${subNo}` : mainNo;
-};
+    const getTextValue = (value: any) => {
+      if (value == null) return "";
+      if (typeof value === "object") {
+        return value._text ?? value["#text"] ?? value.__text ?? "";
+      }
+      return String(value);
+    };
+    
+    const normalizeArticleNo = (value: string) =>
+      String(value ?? "")
+        .replace(/^제/, "")
+        .replace(/조의/g, "의")
+        .replace(/조/g, "")
+        .replace(/\s+/g, "")
+        .replace(/^0+(\d)/, "$1")
+        .trim();
+    
+    const makeArticleNo = (article: any) => {
+      const mainNo = normalizeArticleNo(getTextValue(article?.조문번호));
+    
+      let subNo = normalizeArticleNo(getTextValue(article?.조문가지번호));
+    
+      if (!subNo || subNo === "0") {
+        const rawText = [
+          getTextValue(article?.조문내용),
+          getTextValue(article?.조문제목),
+        ].join(" ");
+    
+        const match = rawText.match(
+          new RegExp(`제\\s*0*${mainNo}\\s*조의\\s*(\\d+)`)
+        );
+    
+        if (match?.[1]) {
+          subNo = normalizeArticleNo(match[1]);
+        }
+      }
+    
+      return subNo && subNo !== "0" ? `${mainNo}의${subNo}` : mainNo;
+    };
 
 export async function GET(req: NextRequest) {
   try {
