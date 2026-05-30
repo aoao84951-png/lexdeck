@@ -170,7 +170,7 @@ const formatArticleNo = (articleNo: string) =>
     const replaced = textValue.replace(
       /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조(?:의\s*(\d+))?/g,
       (match, prefix, lawName, articleNo, subNo) => {
-        const finalArticleNo = subNo ? `${articleNo}조의${subNo}` : articleNo;
+        const finalArticleNo = subNo ? `${articleNo}의${subNo}` : articleNo;
 
         const text = subNo
           ? `${lawName} 제${articleNo}조의${subNo}`
@@ -710,31 +710,25 @@ useEffect(() => {
   };
 
   const openLawArticle = async (lawName: string, articleNo: string) => {
-    const candidates = articleNo.includes("조의")
-      ? [articleNo, `제${articleNo}`]
-      : [articleNo];
+    const key = `${lawName}-${articleNo}`;
   
-    for (const candidate of candidates) {
-      const key = `${lawName}-${candidate}`;
+    if (lawCacheRef.current[key]) {
+      setLawArticle(lawCacheRef.current[key]);
+      setLawModalOpen(true);
+      return;
+    }
   
-      if (lawCacheRef.current[key]) {
-        setLawArticle(lawCacheRef.current[key]);
-        setLawModalOpen(true);
-        return;
-      }
+    const res = await fetch(
+      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
+    );
   
-      const res = await fetch(
-        `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(candidate)}`
-      );
+    const data = await res.json();
   
-      const data = await res.json();
-  
-      if (data.success) {
-        lawCacheRef.current[key] = data.article;
-        setLawArticle(data.article);
-        setLawModalOpen(true);
-        return;
-      }
+    if (data.success) {
+      lawCacheRef.current[key] = data.article;
+      setLawArticle(data.article);
+      setLawModalOpen(true);
+      return;
     }
   
     alert("조문을 찾지 못했어.");
@@ -2038,7 +2032,7 @@ const runCommand = (command: string, value?: string) => {
       const articleNo = match[3];
       const subNo = match[4];
 
-      const finalArticleNo = subNo ? `${articleNo}조의${subNo}` : articleNo;
+      const finalArticleNo = subNo ? `${articleNo}의${subNo}` : articleNo;
 
       const text = subNo
         ? `${lawName} 제${articleNo}조의${subNo}`
