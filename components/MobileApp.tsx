@@ -627,6 +627,50 @@ useEffect(() => {
   
     setActionChapterId(null);
   };
+
+  const moveSubjectOrder = (id: string, direction: -1 | 1) => {
+    setSubjects((prev) => {
+      const index = prev.findIndex((s) => s.id === id);
+      const targetIndex = index + direction;
+  
+      if (index < 0 || targetIndex < 0 || targetIndex >= prev.length) {
+        return prev;
+      }
+  
+      const next = [...prev];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+      return next;
+    });
+  
+    setActionSubjectId(null);
+  };
+  
+  const moveChapterOrder = (id: string, direction: -1 | 1) => {
+    const target = chapters.find((c) => c.id === id);
+    if (!target) return;
+  
+    setChapters((prev) => {
+      const siblings = prev.filter(
+        (c) =>
+          c.subjectId === target.subjectId &&
+          c.parentId === target.parentId
+      );
+  
+      const siblingIndex = siblings.findIndex((c) => c.id === id);
+      const targetSibling = siblings[siblingIndex + direction];
+  
+      if (!targetSibling) return prev;
+  
+      const currentIndex = prev.findIndex((c) => c.id === id);
+      const targetIndex = prev.findIndex((c) => c.id === targetSibling.id);
+  
+      const next = [...prev];
+      [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
+      return next;
+    });
+  
+    setActionChapterId(null);
+  };
   
   const moveChapter = (movingId: string, targetParentId: string | null) => {
     if (movingId === targetParentId) return;
@@ -993,18 +1037,22 @@ useEffect(() => {
           subject={subjects.find((s) => s.id === actionSubjectId)}
           onClose={() => setActionSubjectId(null)}
           onEdit={() => editSubject(actionSubjectId)}
+          onMoveUp={() => moveSubjectOrder(actionSubjectId, -1)}
+          onMoveDown={() => moveSubjectOrder(actionSubjectId, 1)}
           onDelete={() => deleteSubject(actionSubjectId)}
         />
       )}
 
       {actionChapterId && (
         <ChapterActionSheet
-            chapter={chapters.find((c) => c.id === actionChapterId)}
-            onClose={() => setActionChapterId(null)}
-            onAddChild={() => addChapter(actionChapterId)}
-            onEdit={() => editChapter(actionChapterId)}
-            onMove={() => setMovingChapterId(actionChapterId)}
-            onDelete={() => deleteChapter(actionChapterId)}
+          chapter={chapters.find((c) => c.id === actionChapterId)}
+          onClose={() => setActionChapterId(null)}
+          onAddChild={() => addChapter(actionChapterId)}
+          onEdit={() => editChapter(actionChapterId)}
+          onMoveUp={() => moveChapterOrder(actionChapterId, -1)}
+          onMoveDown={() => moveChapterOrder(actionChapterId, 1)}
+          onMove={() => setMovingChapterId(actionChapterId)}
+          onDelete={() => deleteChapter(actionChapterId)}
         />
         )}
 
@@ -2536,15 +2584,19 @@ function ChevronToggle({ open }: { open: boolean }) {
     );
   }
 
-function SubjectActionSheet({
+  function SubjectActionSheet({
     subject,
     onClose,
     onEdit,
+    onMoveUp,
+    onMoveDown,
     onDelete,
   }: {
     subject?: Subject;
     onClose: () => void;
     onEdit: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
     onDelete: () => void;
   }) {
     if (!subject) return null;
@@ -2566,6 +2618,22 @@ function SubjectActionSheet({
             >
               과목 수정
             </button>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onMoveUp}
+                className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              >
+                위로 올리기
+              </button>
+
+              <button
+                onClick={onMoveDown}
+                className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              >
+                아래로 내리기
+              </button>
+            </div>
   
             <button
               onClick={onDelete}
@@ -2586,11 +2654,13 @@ function SubjectActionSheet({
     );
   }
 
-function ChapterActionSheet({
+  function ChapterActionSheet({
     chapter,
     onClose,
     onAddChild,
     onEdit,
+    onMoveUp,
+    onMoveDown,
     onMove,
     onDelete,
   }: {
@@ -2598,6 +2668,8 @@ function ChapterActionSheet({
     onClose: () => void;
     onAddChild: () => void;
     onEdit: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
     onMove: () => void;
     onDelete: () => void;
   }) {
@@ -2627,6 +2699,22 @@ function ChapterActionSheet({
             >
               목차 수정
             </button>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onMoveUp}
+                className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              >
+                위로 올리기
+              </button>
+
+              <button
+                onClick={onMoveDown}
+                className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              >
+                아래로 내리기
+              </button>
+            </div>
   
             <button
               onClick={onMove}
