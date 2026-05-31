@@ -2206,66 +2206,64 @@ function Label({ children, className = "" }: { children: ReactNode; className?: 
 }
 
 function EditorBox({
-    refObj,
-    setRef,
-    defaultHtml,
-    placeholder,
-    onClick,
-  }: {
-    refObj?: React.RefObject<HTMLDivElement | null>;
-    setRef?: (el: HTMLDivElement | null) => void;
-    defaultHtml: string;
-    placeholder: string;
-    onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
-  }) {
-    const innerRef = useRef<HTMLDivElement | null>(null);
-  
-    useEffect(() => {
-      if (!innerRef.current) return;
-      innerRef.current.innerHTML = defaultHtml;
-    }, [defaultHtml]);
-  
-    const insertSoftBreak = () => {
-        const selection = window.getSelection();
-        if (!selection || selection.rangeCount === 0) return;
-      
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-      
-        const br = document.createElement("br");
-        const spacer = document.createTextNode("\u200B");
-      
-        range.insertNode(spacer);
-        range.insertNode(br);
-      
-        range.setStartAfter(spacer);
-        range.setEndAfter(spacer);
-      
-        selection.removeAllRanges();
-        selection.addRange(range);
-    };
-  
-    return (
-      <div
-        ref={(el) => {
-          innerRef.current = el;
-          if (refObj) refObj.current = el;
-          setRef?.(el);
-        }}
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            insertSoftBreak();
-          }
-        }}
-        contentEditable
-        suppressContentEditableWarning
-        data-placeholder={placeholder}
-        className="min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
-      />
-    );
-  }
+  refObj,
+  setRef,
+  defaultHtml,
+  placeholder,
+  onClick,
+}: {
+  refObj?: React.RefObject<HTMLDivElement | null>;
+  setRef?: (el: HTMLDivElement | null) => void;
+  defaultHtml: string;
+  placeholder: string;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
+}) {
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const composingRef = useRef(false);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
+    innerRef.current.innerHTML = defaultHtml;
+  }, [defaultHtml]);
+
+  const insertSoftBreak = () => {
+    document.execCommand("insertLineBreak");
+  };
+
+  return (
+    <div
+      ref={(el) => {
+        innerRef.current = el;
+        if (refObj) refObj.current = el;
+        setRef?.(el);
+      }}
+      onClick={onClick}
+      onCompositionStart={() => {
+        composingRef.current = true;
+      }}
+      onCompositionEnd={() => {
+        composingRef.current = false;
+      }}
+      onKeyDown={(e) => {
+        const nativeEvent = e.nativeEvent as KeyboardEvent;
+
+        if (
+          e.key === "Enter" &&
+          !composingRef.current &&
+          !nativeEvent.isComposing &&
+          nativeEvent.key !== "Process"
+        ) {
+          e.preventDefault();
+          insertSoftBreak();
+        }
+      }}
+      contentEditable
+      suppressContentEditableWarning
+      data-placeholder={placeholder}
+      className="min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
+    />
+  );
+}
 
   function EditorToolbar({
     runCommand,
