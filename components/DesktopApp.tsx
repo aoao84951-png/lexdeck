@@ -2673,9 +2673,34 @@ function ChevronToggle({ open }: { open: boolean }) {
           onClick={(e) => e.stopPropagation()}
           className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
         >
-          <p className="text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
-            {subject.name}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="translate-x-[8px] text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
+                {subject.name}
+            </p>
+
+            <div className="relative h-9 w-9">
+                <select
+                defaultValue=""
+                onChange={(e) => {
+                    if (e.target.value === "up") onMoveUp();
+                    if (e.target.value === "down") onMoveDown();
+                    e.target.value = "";
+                }}
+                className="absolute inset-0 z-10 h-9 w-9 cursor-pointer appearance-none opacity-0"
+                aria-label="과목 순서 변경"
+                >
+                <option value="" disabled>
+                    순서 변경
+                </option>
+                <option value="up">위로 올리기</option>
+                <option value="down">아래로 내리기</option>
+                </select>
+
+                <div className="pointer-events-none flex h-7 w-7 translate-y-[3px] items-center justify-center text-[13px] font-bold text-[#8a94a6]">
+                    ⇅
+                </div>
+            </div>
+          </div>
   
           <div className="mt-5 space-y-2">
             <button
@@ -2684,22 +2709,6 @@ function ChevronToggle({ open }: { open: boolean }) {
             >
               과목 수정
             </button>
-
-            <div className="grid grid-cols-2 gap-2">
-                <button
-                    onClick={onMoveUp}
-                    className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
-                >
-                    위로 올리기
-                </button>
-
-                <button
-                    onClick={onMoveDown}
-                    className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
-                >
-                    아래로 내리기
-                </button>
-            </div>
   
             <button
               onClick={onDelete}
@@ -2747,9 +2756,34 @@ function ChevronToggle({ open }: { open: boolean }) {
           onClick={(e) => e.stopPropagation()}
           className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
         >
-          <p className="text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
-            {chapter.title}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="translate-x-[8px] text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
+                {chapter.title}
+            </p>
+
+            <div className="relative h-9 w-9">
+                <select
+                defaultValue=""
+                onChange={(e) => {
+                    if (e.target.value === "up") onMoveUp();
+                    if (e.target.value === "down") onMoveDown();
+                    e.target.value = "";
+                }}
+                className="absolute inset-0 z-10 h-9 w-9 cursor-pointer appearance-none opacity-0"
+                aria-label="목차 순서 변경"
+                >
+                <option value="" disabled>
+                    순서 변경
+                </option>
+                <option value="up">위로 올리기</option>
+                <option value="down">아래로 내리기</option>
+                </select>
+
+                <div className="pointer-events-none flex h-7 w-7 translate-y-[3px] items-center justify-center text-[13px] font-bold text-[#8a94a6]">
+                    ⇅
+                </div>
+            </div>
+            </div>
   
           <div className="mt-5 space-y-2">
             <button
@@ -2765,22 +2799,6 @@ function ChevronToggle({ open }: { open: boolean }) {
             >
               목차 수정
             </button>
-
-            <div className="grid grid-cols-2 gap-2">
-                <button
-                    onClick={onMoveUp}
-                    className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
-                >
-                    위로 올리기
-                </button>
-
-                <button
-                    onClick={onMoveDown}
-                    className="h-12 rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
-                >
-                    아래로 내리기
-                </button>
-            </div>
   
             <button
               onClick={onMove}
