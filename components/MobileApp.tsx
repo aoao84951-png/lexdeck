@@ -719,7 +719,8 @@ useEffect(() => {
     }
   
     const res = await fetch(
-      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
+      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}&t=${Date.now()}`,
+      { cache: "no-store" }
     );
   
     const data = await res.json();
