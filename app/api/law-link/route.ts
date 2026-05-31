@@ -194,7 +194,21 @@ export async function GET(req: NextRequest) {
       `&display=100`;
 
     const searchRes = await fetch(searchUrl, { cache: "no-store" });
-    const searchData = await searchRes.json();
+    const searchText = await searchRes.text();
+
+    let searchData: any;
+    try {
+      searchData = JSON.parse(searchText);
+    } catch {
+      return json({
+        success: false,
+        message: "법령 검색 응답이 JSON이 아님",
+        status: searchRes.status,
+        lawName,
+        apiKeyExists: !!LAW_API_KEY,
+        raw: searchText.slice(0, 500),
+      });
+    }
 
     const lawList = getArray(searchData?.LawSearch?.law);
 
@@ -223,7 +237,23 @@ export async function GET(req: NextRequest) {
       `&MST=${mst}`;
 
     const detailRes = await fetch(detailUrl, { cache: "no-store" });
-    const detailData = await detailRes.json();
+    const detailText = await detailRes.text();
+
+    let detailData: any;
+    try {
+      detailData = JSON.parse(detailText);
+    } catch {
+      return json({
+        success: false,
+        message: "법령 상세 응답이 JSON이 아님",
+        status: detailRes.status,
+        lawName,
+        normalizedLawName,
+        mst,
+        apiKeyExists: !!LAW_API_KEY,
+        raw: detailText.slice(0, 500),
+      });
+    }
 
     const articles = collectArticleUnits(detailData?.법령);
 
@@ -303,7 +333,7 @@ export async function GET(req: NextRequest) {
     return json({
       success: false,
       message: "서버 오류",
-      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
   }
 }
