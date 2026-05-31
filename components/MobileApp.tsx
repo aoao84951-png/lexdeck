@@ -168,7 +168,7 @@ const formatArticleNo = (articleNo: string) =>
     const textValue = node.nodeValue ?? "";
 
     const replaced = textValue.replace(
-      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조(?:의\s*(\d+))?/g,
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,60}?(?:법률|특례법|소송법|등기법|교통법|심판법|기본법|사업법|보호법|촉진법|민법|형법|법|령|규칙|규정|조례))\s*제\s*(\d+)조(?:의\s*(\d+))?/g,
       (match, prefix, lawName, articleNo, subNo) => {
         const finalArticleNo = subNo ? `${articleNo}의${subNo}` : articleNo;
 
@@ -710,16 +710,7 @@ useEffect(() => {
   };
 
   const openLawArticle = async (lawName: string, articleNo: string) => {
-    const cleanLawName = lawName.trim();
-    const cleanArticleNo = articleNo.trim();
-  
-    const url = `/api/law-link?lawName=${encodeURIComponent(
-      cleanLawName
-    )}&articleNo=${encodeURIComponent(cleanArticleNo)}&t=${Date.now()}`;
-  
-    alert(`요청값 확인\nlawName: ${cleanLawName}\narticleNo: ${cleanArticleNo}`);
-  
-    const key = `${cleanLawName}-${cleanArticleNo}`;
+    const key = `${lawName}-${articleNo}`;
   
     if (lawCacheRef.current[key]) {
       setLawArticle(lawCacheRef.current[key]);
@@ -727,13 +718,10 @@ useEffect(() => {
       return;
     }
   
-    const res = await fetch(url, {
-      cache: "no-store",
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-      },
-    });
+    const res = await fetch(
+      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}&t=${Date.now()}`,
+      { cache: "no-store" }
+    );
   
     const data = await res.json();
   
@@ -744,11 +732,7 @@ useEffect(() => {
       return;
     }
   
-    alert(
-      `조문 실패\nmessage: ${data.message}\nlawName: ${data.lawName ?? ""}\narticleNo: ${
-        data.articleNo ?? ""
-      }\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}`
-    );
+    alert("조문을 찾지 못했어.");
   };
 
   return (
@@ -1998,7 +1982,7 @@ const runCommand = (command: string, value?: string) => {
     const selectedText = selection.toString().trim();
   
     const regex =
-      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,30})\s*제\s*(\d+)조(?:의\s*(\d+))?/g;
+      /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,60}?(?:법률|특례법|소송법|등기법|교통법|심판법|기본법|사업법|보호법|촉진법|민법|형법|법|령|규칙|규정|조례))\s*제\s*(\d+)조(?:의\s*(\d+))?/g;
   
     let match;
   
