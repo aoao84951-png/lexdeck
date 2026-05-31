@@ -732,7 +732,9 @@ useEffect(() => {
       return;
     }
   
-    alert("조문을 찾지 못했어.");
+    alert(
+      `조문 실패\nmessage: ${data.message ?? ""}\nlawName: ${data.lawName ?? lawName}\narticleNo: ${data.articleNo ?? articleNo}\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}`
+    );
   };
 
   return (
