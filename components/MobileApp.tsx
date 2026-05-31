@@ -890,6 +890,11 @@ useEffect(() => {
                         setActionSubjectId(s.id);
                     }}
                     className="mb-0 flex h-[50px] w-full touch-none select-none items-center justify-between px-1 text-left active:opacity-60"
+                    style={{
+                      WebkitUserSelect: "none",
+                      userSelect: "none",
+                      WebkitTouchCallout: "none",
+                    }}
                     >
                     <div className="flex items-center gap-3">
                         <FolderIcon color={s.color || "#4b6cb7"} />
@@ -1469,6 +1474,11 @@ function MobileHeader({
                   } ${isFolder ? "text-[15px]" : isTop ? "text-[17px]" : "text-[15px]"} ${
                     isFolder ? "font-semibold" : selected ? "font-bold" : isTop ? "font-semibold" : "font-medium"
                   }`}
+                  style={{
+                    WebkitUserSelect: "none",
+                    userSelect: "none",
+                    WebkitTouchCallout: "none",
+                  }}
                 >
                   <span className={isFolder ? "flex min-w-0 items-center gap-3" : "flex min-w-0 items-center gap-2"}>
                     {isFolder && <FolderIcon color={c.color || "#4b6cb7"} />}
@@ -2607,7 +2617,14 @@ function ChevronToggle({ open }: { open: boolean }) {
           onClick={(e) => e.stopPropagation()}
           className="mx-auto w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
         >
-          <div className="flex items-center justify-between">
+          <div
+            className="flex select-none items-center justify-between"
+            style={{
+              WebkitUserSelect: "none",
+              userSelect: "none",
+              WebkitTouchCallout: "none",
+            }}
+          >
             <p className="translate-x-[8px] text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
               {subject.name}
             </p>
@@ -2690,7 +2707,14 @@ function ChevronToggle({ open }: { open: boolean }) {
           onClick={(e) => e.stopPropagation()}
           className="mx-auto w-full max-w-[430px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]"
         >
-          <div className="flex items-center justify-between">
+          <div
+            className="flex select-none items-center justify-between"
+            style={{
+              WebkitUserSelect: "none",
+              userSelect: "none",
+              WebkitTouchCallout: "none",
+            }}
+          >
             <p className="translate-x-[8px] text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
               {chapter.title}
             </p>
