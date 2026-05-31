@@ -735,7 +735,7 @@ useEffect(() => {
     }
   
     alert(
-      `조문 실패\nmessage: ${data.message ?? ""}\nlawName: ${data.lawName ?? cleanLawName}\narticleNo: ${data.articleNo ?? cleanArticleNo}\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}`
+      `조문 실패\nmessage: ${data.message ?? ""}\nerrorMessage: ${data.errorMessage ?? ""}\nlawName: ${data.lawName ?? cleanLawName}\narticleNo: ${data.articleNo ?? cleanArticleNo}\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}\nraw: ${data.raw ?? ""}`
     );
   };
 
