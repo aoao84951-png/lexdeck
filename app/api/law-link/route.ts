@@ -1,12 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 const LAW_API_KEY = process.env.LAW_API_KEY!;
+
+const json = (body: any) =>
+  NextResponse.json(body, {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
 
 const getArray = (value: any) => {
   if (!value) return [];
@@ -149,7 +162,7 @@ export async function GET(req: NextRequest) {
     const articleNo = searchParams.get("articleNo")?.trim();
 
     if (!lawName || !articleNo) {
-      return NextResponse.json({
+      return json({
         success: false,
         message: "lawName 또는 articleNo 누락",
       });
@@ -166,7 +179,7 @@ export async function GET(req: NextRequest) {
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({
+      return json({
         success: true,
         article: existing,
       });
@@ -190,7 +203,7 @@ export async function GET(req: NextRequest) {
       lawList.find((item: any) => getLawTitle(item).includes(normalizedLawName));
 
     if (!law?.법령일련번호) {
-      return NextResponse.json({
+      return json({
         success: false,
         message: "법령 검색 실패",
         lawName,
@@ -200,7 +213,7 @@ export async function GET(req: NextRequest) {
 
     const mst = law.법령일련번호;
     const lawId = law.법령ID ?? "";
-    const finalLawName = getLawTitle(law) || normalizedLawName;
+    const finalLawName = normalizedLawName;
 
     const detailUrl =
       `https://www.law.go.kr/DRF/lawService.do?` +
@@ -241,7 +254,7 @@ export async function GET(req: NextRequest) {
     );
 
     if (uniqueRows.length === 0) {
-      return NextResponse.json({
+      return json({
         success: false,
         message: "조문 저장 대상 없음",
         lawName,
@@ -257,7 +270,7 @@ export async function GET(req: NextRequest) {
       });
 
     if (error) {
-      return NextResponse.json({
+      return json({
         success: false,
         message: "DB 저장 실패",
         error,
@@ -269,7 +282,7 @@ export async function GET(req: NextRequest) {
     );
 
     if (!targetArticle) {
-      return NextResponse.json({
+      return json({
         success: false,
         message: "법령은 저장했지만 해당 조문을 찾지 못함",
         lawName,
@@ -282,12 +295,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    return json({
       success: true,
       article: targetArticle,
     });
   } catch (error) {
-    return NextResponse.json({
+    return json({
       success: false,
       message: "서버 오류",
       error,
