@@ -954,7 +954,7 @@ useEffect(() => {
                     return (
                       <div key={groupChapterId} className="mb-5">
                         <p className="mb-2 mt-5 pl-3 text-[12px] font-bold tracking-[-0.03em] text-[#8a94a6]">
-                          {groupChapter?.title ?? "목차 없음"}
+                            총 {group.length}문제
                         </p>
                   
                         <div className="space-y-3">

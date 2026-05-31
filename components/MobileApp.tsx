@@ -734,7 +734,7 @@ useEffect(() => {
     
     alert("조문을 찾을 수 없습니다.");
   };
-  
+
   return (
     <>
     <main className="min-h-[100svh] bg-white text-[#111827]">
@@ -913,7 +913,7 @@ useEffect(() => {
                     return (
                       <div key={groupChapterId} className="mb-5">
                         <p className="mb-2 mt-5 pl-3 text-[12px] font-bold tracking-[-0.03em] text-[#8a94a6]">
-                          {groupChapter?.title ?? "목차 없음"}
+                          총 {group.length}문제
                         </p>
                   
                         <div>
