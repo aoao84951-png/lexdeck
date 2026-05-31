@@ -734,9 +734,7 @@ useEffect(() => {
       return;
     }
   
-    alert(
-      `조문 실패\nmessage: ${data.message ?? ""}\nerrorMessage: ${data.errorMessage ?? ""}\nlawName: ${data.lawName ?? cleanLawName}\narticleNo: ${data.articleNo ?? cleanArticleNo}\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}\nraw: ${data.raw ?? ""}`
-    );
+    alert("조문을 찾을 수 없습니다.");
   };
 
   return (

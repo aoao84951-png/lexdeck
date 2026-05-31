@@ -731,12 +731,10 @@ useEffect(() => {
       setLawModalOpen(true);
       return;
     }
-  
-    alert(
-      `조문 실패\nmessage: ${data.message ?? ""}\nlawName: ${data.lawName ?? lawName}\narticleNo: ${data.articleNo ?? articleNo}\nnormalizedArticleNo: ${data.normalizedArticleNo ?? ""}`
-    );
+    
+    alert("조문을 찾을 수 없습니다.");
   };
-
+  
   return (
     <>
     <main className="min-h-[100svh] bg-white text-[#111827]">
