@@ -710,7 +710,10 @@ useEffect(() => {
   };
 
   const openLawArticle = async (lawName: string, articleNo: string) => {
-    const key = `${lawName}-${articleNo}`;
+    const cleanLawName = lawName.trim();
+    const cleanArticleNo = articleNo.trim();
+  
+    const key = `${cleanLawName}-${cleanArticleNo}`;
   
     if (lawCacheRef.current[key]) {
       setLawArticle(lawCacheRef.current[key]);
@@ -719,7 +722,16 @@ useEffect(() => {
     }
   
     const res = await fetch(
-      `/api/law-link?lawName=${encodeURIComponent(lawName)}&articleNo=${encodeURIComponent(articleNo)}`
+      `/api/law-link?lawName=${encodeURIComponent(
+        cleanLawName
+      )}&articleNo=${encodeURIComponent(cleanArticleNo)}&t=${Date.now()}`,
+      {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      }
     );
   
     const data = await res.json();
@@ -731,7 +743,15 @@ useEffect(() => {
       return;
     }
   
-    alert("조문을 찾지 못했어.");
+    console.error(data);
+  
+    alert(
+      `조문 실패
+  message: ${data.message}
+  lawName: ${data.lawName ?? ""}
+  articleNo: ${data.articleNo ?? ""}
+  normalizedArticleNo: ${data.normalizedArticleNo ?? ""}`
+    );
   };
 
   return (
