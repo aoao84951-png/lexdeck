@@ -5,43 +5,61 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const LAW_API_KEY = process.env.LAW_API_KEY;
 
-const LAW_API_KEY = process.env.LAW_API_KEY!;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !LAW_API_KEY) {
+  throw new Error("필수 환경변수 누락");
+}
 
-const fetchLawApi = async (url: string) => {
-  const httpsUrl = url;
-  const httpUrl = url.replace("https://www.law.go.kr", "http://www.law.go.kr");
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+const fetchLawJson = async (url: string) => {
+  const urls = [
+    url,
+    url.replace("https://www.law.go.kr", "http://www.law.go.kr"),
+  ];
 
   const headers = {
     Accept: "application/json,text/plain,*/*",
     "User-Agent": "Mozilla/5.0",
   };
 
-  try {
-    return await fetch(httpsUrl, {
-      cache: "no-store",
-      headers,
-    });
-  } catch (httpsError) {
+  const errors: any[] = [];
+
+  for (const requestUrl of urls) {
     try {
-      return await fetch(httpUrl, {
+      const res = await fetch(requestUrl, {
         cache: "no-store",
         headers,
       });
-    } catch (httpError) {
-      throw new Error(
-        `LAW_API_FETCH_FAILED / https: ${
-          httpsError instanceof Error ? httpsError.message : String(httpsError)
-        } / http: ${
-          httpError instanceof Error ? httpError.message : String(httpError)
-        }`
-      );
+
+      const text = await res.text();
+
+      try {
+        return {
+          data: JSON.parse(text),
+          status: res.status,
+          raw: text,
+          usedUrl: requestUrl,
+        };
+      } catch {
+        errors.push({
+          url: requestUrl,
+          status: res.status,
+          raw: text.slice(0, 500),
+        });
+      }
+    } catch (error) {
+      errors.push({
+        url: requestUrl,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
+
+  throw new Error(`LAW_API_JSON_FAILED: ${JSON.stringify(errors)}`);
 };
 
 const json = (body: any) =>
@@ -225,20 +243,18 @@ export async function GET(req: NextRequest) {
       `&query=${encodeURIComponent(lawName)}` +
       `&display=100`;
 
-    const searchRes = await fetchLawApi(searchUrl);
-    const searchText = await searchRes.text();
-
     let searchData: any;
+
     try {
-      searchData = JSON.parse(searchText);
-    } catch {
+      const result = await fetchLawJson(searchUrl);
+      searchData = result.data;
+    } catch (error) {
       return json({
         success: false,
-        message: "법령 검색 응답이 JSON이 아님",
-        status: searchRes.status,
+        message: "법령 검색 API 호출 실패",
         lawName,
         apiKeyExists: !!LAW_API_KEY,
-        raw: searchText.slice(0, 500),
+        errorMessage: error instanceof Error ? error.message : String(error),
       });
     }
 
@@ -268,22 +284,20 @@ export async function GET(req: NextRequest) {
       `&type=JSON` +
       `&MST=${mst}`;
 
-    const detailRes = await fetchLawApi(detailUrl);
-    const detailText = await detailRes.text();
-
     let detailData: any;
+
     try {
-      detailData = JSON.parse(detailText);
-    } catch {
+      const result = await fetchLawJson(detailUrl);
+      detailData = result.data;
+    } catch (error) {
       return json({
         success: false,
-        message: "법령 상세 응답이 JSON이 아님",
-        status: detailRes.status,
+        message: "법령 상세 API 호출 실패",
         lawName,
         normalizedLawName,
         mst,
         apiKeyExists: !!LAW_API_KEY,
-        raw: detailText.slice(0, 500),
+        errorMessage: error instanceof Error ? error.message : String(error),
       });
     }
 
