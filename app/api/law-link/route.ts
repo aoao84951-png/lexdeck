@@ -243,27 +243,28 @@ export async function GET(req: NextRequest) {
     }
 
     // 6. 다시 해당 조문 찾기
-    const { data: article } = await supabase
-      .from("law_articles")
-      .select("*")
-      .eq("law_name", lawName)
-      .eq("article_no", normalizedArticleNo)
-      .maybeSingle();
+    // 6. 저장한 rows 안에서 바로 해당 조문 찾기
+    const targetArticle = uniqueRows.find(
+      (row) => row.article_no === normalizedArticleNo
+    );
 
-    if (!article) {
+    if (!targetArticle) {
       return NextResponse.json({
         success: false,
         message: "법령은 저장했지만 해당 조문을 찾지 못함",
         lawName,
         articleNo,
+        normalizedArticleNo,
+        savedArticleNos: uniqueRows.map((row) => row.article_no),
         savedCount: uniqueRows.length,
       });
     }
 
     return NextResponse.json({
       success: true,
-      article,
+      article: targetArticle,
     });
+    
   } catch (error) {
     return NextResponse.json({
       success: false,
