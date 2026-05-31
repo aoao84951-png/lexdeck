@@ -12,6 +12,38 @@ const supabase = createClient(
 
 const LAW_API_KEY = process.env.LAW_API_KEY!;
 
+const fetchLawApi = async (url: string) => {
+  const httpsUrl = url;
+  const httpUrl = url.replace("https://www.law.go.kr", "http://www.law.go.kr");
+
+  const headers = {
+    Accept: "application/json,text/plain,*/*",
+    "User-Agent": "Mozilla/5.0",
+  };
+
+  try {
+    return await fetch(httpsUrl, {
+      cache: "no-store",
+      headers,
+    });
+  } catch (httpsError) {
+    try {
+      return await fetch(httpUrl, {
+        cache: "no-store",
+        headers,
+      });
+    } catch (httpError) {
+      throw new Error(
+        `LAW_API_FETCH_FAILED / https: ${
+          httpsError instanceof Error ? httpsError.message : String(httpsError)
+        } / http: ${
+          httpError instanceof Error ? httpError.message : String(httpError)
+        }`
+      );
+    }
+  }
+};
+
 const json = (body: any) =>
   NextResponse.json(body, {
     headers: {
@@ -193,7 +225,7 @@ export async function GET(req: NextRequest) {
       `&query=${encodeURIComponent(lawName)}` +
       `&display=100`;
 
-    const searchRes = await fetch(searchUrl, { cache: "no-store" });
+    const searchRes = await fetchLawApi(searchUrl);
     const searchText = await searchRes.text();
 
     let searchData: any;
@@ -236,7 +268,7 @@ export async function GET(req: NextRequest) {
       `&type=JSON` +
       `&MST=${mst}`;
 
-    const detailRes = await fetch(detailUrl, { cache: "no-store" });
+    const detailRes = await fetchLawApi(detailUrl);
     const detailText = await detailRes.text();
 
     let detailData: any;
