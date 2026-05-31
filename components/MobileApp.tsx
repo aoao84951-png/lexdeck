@@ -2226,9 +2226,6 @@ function EditorBox({
     innerRef.current.innerHTML = defaultHtml;
   }, [defaultHtml]);
 
-  const insertSoftBreak = () => {
-    document.execCommand("insertLineBreak");
-  };
 
   return (
     <div
@@ -2238,25 +2235,7 @@ function EditorBox({
         setRef?.(el);
       }}
       onClick={onClick}
-      onCompositionStart={() => {
-        composingRef.current = true;
-      }}
-      onCompositionEnd={() => {
-        composingRef.current = false;
-      }}
-      onKeyDown={(e) => {
-        const nativeEvent = e.nativeEvent as KeyboardEvent;
 
-        if (
-          e.key === "Enter" &&
-          !composingRef.current &&
-          !nativeEvent.isComposing &&
-          nativeEvent.key !== "Process"
-        ) {
-          e.preventDefault();
-          insertSoftBreak();
-        }
-      }}
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
