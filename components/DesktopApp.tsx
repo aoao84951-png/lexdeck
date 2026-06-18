@@ -35,7 +35,8 @@ type Question = {
   answer: Answer;
   explanationHtml: string;
   extraPoints?: ExtraPoint[];
-  favorite: boolean;
+  favorite?: boolean;
+  importanceStars?: 0 | 1 | 2 | 3;
   memorized: boolean;
   disabledAutoLinks?: string[];
 };
@@ -54,6 +55,63 @@ const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
 const initialQuestions: Question[] = [];
+
+type StarIconProps = {
+  active?: boolean;
+  size?: number;
+};
+
+function StarIcon({ active = true, size = 15 }: StarIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`shrink-0 transition-all ${
+        active
+          ? "text-[#ef4444] drop-shadow-[0_2px_5px_rgba(239,68,68,0.18)]"
+          : "text-[#c7ceda]"
+      }`}
+    >
+      <path
+        d="M12 3.15 14.67 8.84 20.9 9.6 16.32 13.9 17.52 20.08 12 17.02 6.48 20.08 7.68 13.9 3.1 9.6 9.33 8.84 12 3.15Z"
+        fill={active ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+type ImportanceStarsProps = {
+  count?: number;
+  size?: number;
+};
+
+function ImportanceStars({ count, size = 15 }: ImportanceStarsProps) {
+  const safeCount = Math.min(3, Math.max(0, count ?? 0));
+  if (!safeCount) return null;
+
+  return (
+    <span
+      className="inline-flex items-center gap-[2px]"
+      aria-label={`중요도 ${safeCount}단계`}
+    >
+      {Array.from({ length: safeCount }).map((_, index) => (
+        <StarIcon key={index} size={size} />
+      ))}
+    </span>
+  );
+}
+
+const getQuestionImportanceStars = (question?: Question) =>
+  Math.min(
+    3,
+    Math.max(0, question?.importanceStars ?? (question?.favorite ? 1 : 0)),
+  );
 
 const stripHtml = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -497,6 +555,23 @@ useEffect(() => {
 
   const updateQuestion = (id: string, patch: Partial<Question>) => {
     setQuestions((prev) => prev.map((q) => (q.id === id ? { ...q, ...patch } : q)));
+  };
+
+  const toggleQuestionImportance = (id: string) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== id) return q;
+
+        const current = getQuestionImportanceStars(q);
+        const next = current >= 3 ? 0 : ((current + 1) as 1 | 2 | 3);
+
+        return {
+          ...q,
+          favorite: Boolean(next),
+          importanceStars: next,
+        };
+      }),
+    );
   };
 
   const addSubject = () => {
@@ -1016,12 +1091,22 @@ useEffect(() => {
                             <button
                                 key={q.id}
                                 onClick={() => selectQuestion(q.id)}
-                                className={`w-full rounded-[20px] border border-[#e4e8f0] bg-white px-4 py-4 text-left shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition active:scale-[0.995] ${
-                                q.memorized ? "opacity-40" : ""
-                                }`}
+                                className={`w-full rounded-[20px] border px-4 py-4 text-left shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition active:scale-[0.995] ${
+                                getQuestionImportanceStars(q)
+                                  ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
+                                  : "border-[#e4e8f0] bg-white"
+                                } ${q.memorized ? "opacity-40" : ""}`}
                             >
                               <div>
                                 <div>
+                                    {getQuestionImportanceStars(q) ? (
+                                      <span className="mb-1 inline-flex items-center">
+                                        <ImportanceStars
+                                          count={getQuestionImportanceStars(q)}
+                                          size={13}
+                                        />
+                                      </span>
+                                    ) : null}
                                     <div className="mb-2">
                                         <span className="rounded-full bg-[#eef2f8] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#0f2a5f]">
                                         Q{originalIndex + 1}
@@ -1031,7 +1116,7 @@ useEffect(() => {
                                     {search ? (
                                         <p
                                             className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
-                                            q.favorite ? "text-[#d95c5c]" : "text-[#111827]"
+                                            getQuestionImportanceStars(q) ? "text-[#d95c5c]" : "text-[#111827]"
                                             }`}
                                         >
                                             {highlightKeyword(stripHtml(q.textHtml), search)}
@@ -1039,7 +1124,7 @@ useEffect(() => {
                                         ) : (
                                             <JustifiedText
                                             className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
-                                              q.favorite ? "text-[#d95c5c]" : "text-[#111827]"
+                                              getQuestionImportanceStars(q) ? "text-[#d95c5c]" : "text-[#111827]"
                                             }`}
                                             html={linkLawText(normalizeQuestionHtml(q.textHtml), q.disabledAutoLinks ?? [])}
                                           />
@@ -1068,6 +1153,7 @@ useEffect(() => {
                 showAnswer={showAnswer}
                 setShowAnswer={setShowAnswer}
                 updateQuestion={updateQuestion}
+                toggleQuestionImportance={toggleQuestionImportance}
                 onEdit={openEdit}
                 onOpenLawArticle={openLawArticle}
                 allQuestions={questions}
@@ -1137,6 +1223,7 @@ useEffect(() => {
                   explanationHtml: saved.explanationHtml ?? "",
                   extraPoints: saved.extraPoints ?? [],
                   favorite: false,
+                  importanceStars: 0,
                   memorized: false,
                   disabledAutoLinks: saved.disabledAutoLinks ?? [],
                 },
@@ -1565,6 +1652,7 @@ function MobileHeader({
     showAnswer,
     setShowAnswer,
     updateQuestion,
+    toggleQuestionImportance,
     onEdit,
     onOpenLawArticle,
     allQuestions,
@@ -1575,6 +1663,7 @@ function MobileHeader({
     showAnswer: boolean;
     setShowAnswer: (v: boolean) => void;
     updateQuestion: (id: string, patch: Partial<Question>) => void;
+    toggleQuestionImportance: (id: string) => void;
     onEdit: () => void;
     onOpenLawArticle: (lawName: string, articleNo: string) => void;
     allQuestions: Question[];
@@ -1591,6 +1680,7 @@ function MobileHeader({
     const originalQuestionIndex = chapterQuestions.findIndex(
       (q) => q.id === question.id
     );
+    const currentImportanceStars = getQuestionImportanceStars(question);
   
     const goPrev = () => {
         if (currentIndex <= 0) return;
@@ -1678,7 +1768,13 @@ function MobileHeader({
           detailTapStart.current = null;
         }}
       >
-        <section className="relative rounded-[22px] border border-[#e4e8f0] bg-white px-5 py-5">
+        <section
+          className={`relative rounded-[22px] border px-5 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)] ${
+            currentImportanceStars
+              ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
+              : "border-[#e4e8f0] bg-white"
+          }`}
+        >
           <div className={question.memorized ? "opacity-40" : ""}>
           <div className="mb-3 flex items-center justify-between">
           <p className="text-[12px] font-bold text-[#8a94a6]">
@@ -1695,7 +1791,7 @@ function MobileHeader({
                     question.disabledAutoLinks ?? []
                 )}
                 className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
-                    question.favorite ? "text-[#d95c5c]" : "text-[#111827]"
+                    getQuestionImportanceStars(question) ? "text-[#d95c5c]" : "text-[#111827]"
                 }`}
                 onClick={handleLawClick}
             />
@@ -1707,15 +1803,20 @@ function MobileHeader({
                 type="button"
                 onClick={(e) => {
                     e.stopPropagation();
-                    updateQuestion(question.id, { favorite: !question.favorite });
+                    toggleQuestionImportance(question.id);
                 }}
-                className={`flex h-7 w-7 items-center justify-center transition-all ${
-                    question.favorite
-                    ? "text-[#d95c5c]"
-                    : "text-[#c7ccd4]"
-                }`}
-                >
-                {question.favorite ? "★" : "☆"}
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                aria-label={`중요도 ${currentImportanceStars}단계`}
+                title="누를 때마다 중요도 1 → 2 → 3 → 해제로 변경"
+            >
+                <span className="relative flex h-7 w-7 items-center justify-center">
+                    <StarIcon active={Boolean(currentImportanceStars)} size={22} />
+                    {currentImportanceStars ? (
+                        <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
+                            {currentImportanceStars}
+                        </span>
+                    ) : null}
+                </span>
             </button>
 
             <button
