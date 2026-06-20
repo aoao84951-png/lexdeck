@@ -309,6 +309,9 @@ export default function DesktopApp() {
   const [search, setSearch] = useState("");
   const [questionSortOrder, setQuestionSortOrder] = useState<"latest" | "oldest">("oldest");
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [sidebarExpandedIds, setSidebarExpandedIds] = useState<string[]>([]);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [actionChapterId, setActionChapterId] = useState<string | null>(null);
   const [movingChapterId, setMovingChapterId] = useState<string | null>(null);
@@ -351,6 +354,8 @@ export default function DesktopApp() {
       showAnswer,
       search,
       expandedIds,
+      currentParentId,
+      isContentExpanded,
     };
   
     if (isHistoryMoving.current) {
@@ -366,7 +371,7 @@ export default function DesktopApp() {
   
     window.history.pushState(state, "", window.location.href);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds]);
+  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId, isContentExpanded]);
   
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -382,6 +387,8 @@ export default function DesktopApp() {
       setShowAnswer(state.showAnswer ?? false);
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
+      setCurrentParentId(state.currentParentId ?? null);
+      setIsContentExpanded(state.isContentExpanded ?? false);
   
       setFormOpen(false);
       setSubjectFormOpen(false);
@@ -389,6 +396,7 @@ export default function DesktopApp() {
       setActionSubjectId(null);
       setActionChapterId(null);
       setMovingChapterId(null);
+      setSidebarOpen(false);
     };
   
     window.addEventListener("popstate", handlePopState);
@@ -413,6 +421,8 @@ export default function DesktopApp() {
       setShowAnswer(state.showAnswer ?? false);
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
+      setCurrentParentId(state.currentParentId ?? null);
+      setIsContentExpanded(state.isContentExpanded ?? false);
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -490,6 +500,60 @@ useEffect(() => {
   const currentFolder = currentParentId
   ? chapters.find((c) => c.id === currentParentId)
   : null;
+
+  const getChapterPath = (targetId?: string | null) => {
+    if (!targetId) return [] as Chapter[];
+
+    const path: Chapter[] = [];
+    let current = chapters.find((c) => c.id === targetId);
+
+    while (current) {
+      path.unshift(current);
+      current = current.parentId
+        ? chapters.find((c) => c.id === current?.parentId)
+        : undefined;
+    }
+
+    return path;
+  };
+
+  const activeChapterPath = getChapterPath(
+    screen === "chapters" ? currentParentId : selectedChapter?.id,
+  );
+  const activeChapterPathIds = activeChapterPath.map((item) => item.id);
+  const activeSidebarChapterId =
+    screen === "chapters" ? currentParentId ?? "" : selectedChapter?.id ?? "";
+
+  const openPathSubject = () => {
+    setScreen("chapters");
+    setCurrentParentId(null);
+    setChapterId("");
+    setQuestionId("");
+    setShowAnswer(false);
+    setSearch("");
+  };
+
+  const openPathChapter = (target: Chapter) => {
+    setSearch("");
+    setShowAnswer(false);
+
+    if (target.type === "folder") {
+      setCurrentParentId(target.id);
+      setChapterId(target.id);
+      setQuestionId("");
+      setScreen("chapters");
+      return;
+    }
+
+    setCurrentParentId(target.parentId);
+    selectChapter(target.id);
+  };
+
+  const toggleSidebarChapter = (id: string) => {
+    setSidebarExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id],
+    );
+  };
 
   const subjectChapters = chapters.filter((c) => c.subjectId === subjectId);
   const visibleChapters = subjectChapters.filter(
@@ -614,6 +678,7 @@ useEffect(() => {
     setCurrentParentId(null);
     setChapterId("");
     setSearch("");
+    setSidebarExpandedIds([]);
     setScreen("chapters");
   };
 
@@ -786,6 +851,7 @@ useEffect(() => {
     setShowAnswer(false);
     setSearch("");
     setExpandedIds([]);
+    setSidebarExpandedIds([]);
   };
 
   const goBackScreen = () => {
@@ -862,7 +928,7 @@ useEffect(() => {
             {isStandalone && (
             <button
                 onClick={() => window.location.reload()}
-                className="fixed bottom-16 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
+                className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
                 aria-label="새로고침"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -883,40 +949,32 @@ useEffect(() => {
             </button>
             )}
 
-            <div className="min-h-[calc(100svh-128px)] xl:grid xl:grid-cols-[280px_minmax(0,1fr)]">
-            <aside className="hidden xl:block min-h-full border-r border-[#e4e8f0] pr-7 py-5">
-                <p className="mb-4 text-[11px] font-bold tracking-[0.3em] text-[#a3abb8]">
-                SUBJECTS
-                </p>
+            {screen !== "subjects" && (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="fixed bottom-[calc(116px+env(safe-area-inset-bottom))] right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
+                aria-label="목차 열기"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M4 7h16M4 12h16M4 17h16"
+                    stroke="#0f2a5f"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            )}
 
-                <div className="space-y-1">
-                {subjects.map((s) => (
-                    <button
-                    key={s.id}
-                    onClick={() => selectSubject(s.id)}
-                    className={`flex h-11 w-full items-center justify-between rounded-2xl px-3 text-left transition active:scale-[0.99] ${
-                        subjectId === s.id ? "bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)]" : ""
-                    }`}
-                    >
-                    <span className="flex min-w-0 items-center gap-3">
-                        <FolderIcon size={18} color={s.color || "#4b6cb7"} />
-                        <span className="truncate text-[14px] font-semibold text-[#303236]">
-                        {s.name}
-                        </span>
-                    </span>
-
-                    <span className="text-[17px] font-light text-[#9aa3b2]">›</span>
-                    </button>
-                ))}
-                </div>
-            </aside>
-
-            <div className="min-w-0 pl-8">
+            <div className="min-h-[calc(100svh-128px)]">
+            <div className="min-w-0">
         <MobileHeader
           chapterMode={screen === "chapters"}
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
           onHome={screen !== "subjects" ? goHome : undefined}
           onAddFolder={screen === "chapters" ? () => addFolder(currentParentId) : undefined}
+          onToggleExpand={screen !== "subjects" ? () => setIsContentExpanded((prev) => !prev) : undefined}
+          isContentExpanded={isContentExpanded}
           eyebrow={
             screen === "subjects"
               ? "LEXDECK"
@@ -1165,6 +1223,26 @@ useEffect(() => {
       </div>
     </section>
 
+      {sidebarOpen && (
+        <NavigationDrawer
+          subjects={subjects}
+          selectedSubject={selectedSubject}
+          subjectChapters={subjectChapters}
+          activeSidebarChapterId={activeSidebarChapterId}
+          activeChapterPathIds={activeChapterPathIds}
+          expandedIds={sidebarExpandedIds}
+          onClose={() => setSidebarOpen(false)}
+          onSelectSubject={(id) => {
+            selectSubject(id);
+          }}
+          onToggleChapter={toggleSidebarChapter}
+          onOpenChapter={(chapter) => {
+            openPathChapter(chapter);
+            setSidebarOpen(false);
+          }}
+        />
+      )}
+
       {actionSubjectId && (
         <SubjectActionSheet
             subject={subjects.find((s) => s.id === actionSubjectId)}
@@ -1331,6 +1409,8 @@ function MobileHeader({
     onDelete,
     onHome,
     onAddFolder,
+    onToggleExpand,
+    isContentExpanded = false,
     chapterMode = false,
     screenTitleFix = false,
     sortOrder,
@@ -1345,6 +1425,8 @@ function MobileHeader({
     onDelete?: () => void;
     onHome?: () => void;
     onAddFolder?: () => void;
+    onToggleExpand?: () => void;
+    isContentExpanded?: boolean;
     chapterMode?: boolean;
     screenTitleFix?: boolean;
     sortOrder?: "latest" | "oldest";
@@ -1354,19 +1436,32 @@ function MobileHeader({
         return (
             <header>
             <div className="flex h-4 items-center justify-between">
-              <p
-                className="text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
-                style={{
-                  transform: showBack ? "translateX(3px)" : "translateX(1px)",
-                }}
-              >
-                {eyebrow}
-              </p>
+              <div className="flex min-w-0 items-center gap-2">
+                {onToggleExpand && (
+                  <button
+                    onClick={onToggleExpand}
+                    className="hidden h-4 w-4 translate-x-[1px] items-center justify-center text-[#8a94a6] active:scale-95 xl:flex"
+                    aria-label={isContentExpanded ? "목록 보기" : "전체화면"}
+                  >
+                    <span className="text-[14px] leading-none">
+                      {isContentExpanded ? "‹" : "⤢"}
+                    </span>
+                  </button>
+                )}
+                <p
+                  className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
+                  style={{
+                    transform: showBack && !onToggleExpand ? "translateX(3px)" : "translateX(1px)",
+                  }}
+                >
+                  {eyebrow}
+                </p>
+              </div>
           
               {onHome && (
                 <button
                   onClick={onHome}
-                  className="flex h-4 w-4 items-center justify-center text-[#a3abb8] active:scale-95"
+                  className="flex h-4 w-4 -translate-x-1 items-center justify-center text-[#a3abb8] active:scale-95"
                   aria-label="홈"
                 >
                   <HomeIcon size={12} />
@@ -1425,19 +1520,32 @@ function MobileHeader({
       return (
         <header>
           <div className="flex h-4 items-center justify-between">
-            <p
-                className="text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
-                style={{
-                transform: showBack ? "translateX(3px)" : "translateX(1px)",
-                }}
-            >
-                {eyebrow}
-            </p>
+            <div className="flex min-w-0 items-center gap-2">
+              {onToggleExpand && (
+                <button
+                  onClick={onToggleExpand}
+                  className="hidden h-4 w-4 translate-x-[1px] items-center justify-center text-[#8a94a6] active:scale-95 xl:flex"
+                  aria-label={isContentExpanded ? "목록 보기" : "전체화면"}
+                >
+                  <span className="text-[14px] leading-none">
+                    {isContentExpanded ? "‹" : "⤢"}
+                  </span>
+                </button>
+              )}
+              <p
+                  className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
+                  style={{
+                  transform: showBack && !onToggleExpand ? "translateX(3px)" : "translateX(1px)",
+                  }}
+              >
+                  {eyebrow}
+              </p>
+            </div>
 
             {onHome && (
                 <button
                 onClick={onHome}
-                className="flex h-4 w-4 items-center justify-center text-[#a3abb8] active:scale-95"
+                className="flex h-4 w-4 -translate-x-1 items-center justify-center text-[#a3abb8] active:scale-95"
                 aria-label="홈"
                 >
                 <HomeIcon size={12} />
@@ -1520,6 +1628,226 @@ function MobileHeader({
     );
   }
 
+  function NavigationDrawer({
+    subjects,
+    selectedSubject,
+    subjectChapters,
+    activeSidebarChapterId,
+    activeChapterPathIds,
+    expandedIds,
+    onClose,
+    onSelectSubject,
+    onToggleChapter,
+    onOpenChapter,
+  }: {
+    subjects: Subject[];
+    selectedSubject?: Subject;
+    subjectChapters: Chapter[];
+    activeSidebarChapterId: string;
+    activeChapterPathIds: string[];
+    expandedIds: string[];
+    onClose: () => void;
+    onSelectSubject: (id: string) => void;
+    onToggleChapter: (id: string) => void;
+    onOpenChapter: (chapter: Chapter) => void;
+  }) {
+    const [subjectPickerOpen, setSubjectPickerOpen] = useState(false);
+
+    const handleSelectSubject = (id: string) => {
+      onSelectSubject(id);
+      setSubjectPickerOpen(false);
+    };
+
+    return (
+      <div className="fixed inset-0 z-[80]">
+        <button
+          className="absolute inset-0 bg-[#0f172a]/20 backdrop-blur-[1px]"
+          onClick={onClose}
+          aria-label="목차 닫기"
+        />
+
+        <aside className="absolute left-0 top-0 flex h-full w-[min(82vw,340px)] flex-col bg-white px-5 py-6 shadow-[16px_0_40px_rgba(15,23,42,0.12)]">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              
+              <p className="mt-1 text-[18px] font-extrabold tracking-[-0.05em] text-[#0f2a5f]">
+                목차
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f6fa] text-[18px] font-light text-[#8a94a6] active:scale-95"
+              aria-label="닫기"
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="relative mb-5">
+            <button
+              type="button"
+              onClick={() => setSubjectPickerOpen((open) => !open)}
+              className="flex h-12 w-full items-center gap-3 rounded-[20px] border border-[#e4e8f0] bg-[#fbfcfe] px-3.5 text-left transition active:scale-[0.99]"
+            >
+              {selectedSubject ? (
+                <FolderIcon size={18} color={selectedSubject.color || "#4b6cb7"} />
+              ) : (
+                <span className="h-[18px] w-[18px] rounded-md bg-[#e4e8f0]" />
+              )}
+
+              <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-[#0f2a5f]">
+                {selectedSubject?.name ?? "과목 선택"}
+              </span>
+
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[#8a94a6]">
+                <ChevronToggle open={subjectPickerOpen} />
+              </span>
+            </button>
+
+            {subjectPickerOpen && (
+              <>
+                <button
+                  className="fixed inset-0 z-[85] cursor-default"
+                  onClick={() => setSubjectPickerOpen(false)}
+                  aria-label="과목 선택 닫기"
+                />
+
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-[90] rounded-[20px] border border-[#e4e8f0] bg-white p-2 shadow-[0_14px_34px_rgba(15,23,42,0.14)]">
+                  <div className="max-h-[48svh] space-y-1 overflow-y-auto pr-1">
+                    {subjects.length === 0 ? (
+                      <p className="px-3 py-4 text-[12px] font-semibold text-[#9aa3b2]">
+                        등록된 과목이 없어.
+                      </p>
+                    ) : (
+                      subjects.map((subject) => (
+                        <button
+                          key={subject.id}
+                          type="button"
+                          onClick={() => handleSelectSubject(subject.id)}
+                          className={`flex h-11 w-full items-center gap-2.5 rounded-2xl px-3 text-left transition active:scale-[0.99] ${
+                            selectedSubject?.id === subject.id
+                              ? "bg-[#f3f6fb]"
+                              : "hover:bg-[#fbfcfe]"
+                          }`}
+                        >
+                          <FolderIcon size={17} color={subject.color || "#4b6cb7"} />
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-[#303236]">
+                            {subject.name}
+                          </span>
+                          {selectedSubject?.id === subject.id && (
+                            <span className="text-[12px] font-black text-[#0f2a5f]">✓</span>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            {selectedSubject ? (
+              <div className="space-y-2">
+                {subjectChapters.length === 0 ? (
+                  <p className="rounded-2xl bg-[#fbfcfe] px-3.5 py-3 text-[12px] font-semibold leading-relaxed text-[#9aa3b2]">
+                    등록된 목차가 없어.
+                  </p>
+                ) : (
+                  <SidebarChapterTree
+                    chapters={subjectChapters}
+                    selectedId={activeSidebarChapterId}
+                    activePathIds={activeChapterPathIds}
+                    expandedIds={expandedIds}
+                    onToggle={onToggleChapter}
+                    onOpenChapter={onOpenChapter}
+                  />
+                )}
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-[#fbfcfe] px-3.5 py-3 text-[12px] font-semibold leading-relaxed text-[#9aa3b2]">
+                먼저 과목을 선택해줘.
+              </p>
+            )}
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  function SidebarChapterTree({
+    chapters,
+    selectedId,
+    activePathIds,
+    expandedIds,
+    onToggle,
+    onOpenChapter,
+  }: {
+    chapters: Chapter[];
+    selectedId: string;
+    activePathIds: string[];
+    expandedIds: string[];
+    onToggle: (id: string) => void;
+    onOpenChapter: (chapter: Chapter) => void;
+  }) {
+    void activePathIds;
+
+    const render = (parentId: string | null, depth: number): ReactNode =>
+      chapters
+        .filter((chapter) => chapter.parentId === parentId)
+        .map((chapter) => {
+          const children = chapters.filter((item) => item.parentId === chapter.id);
+          const hasChildren = children.length > 0;
+          const open = expandedIds.includes(chapter.id);
+          const selected = selectedId === chapter.id;
+
+          return (
+            <div key={chapter.id}>
+              <button
+                onClick={() => {
+                  if (hasChildren) {
+                    onToggle(chapter.id);
+                    return;
+                  }
+
+                  onOpenChapter(chapter);
+                }}
+                className={`flex min-h-[42px] w-full items-center gap-2 rounded-2xl px-3 py-2 text-left transition active:scale-[0.99] ${
+                  selected
+                    ? "bg-white shadow-[0_4px_14px_rgba(15,23,42,0.05)]"
+                    : "hover:bg-[#fbfcfe]"
+                }`}
+                style={{ paddingLeft: 12 + depth * 18 }}
+              >
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                    hasChildren
+                      ? "bg-[#eef3fb] text-[#4b6cb7]"
+                      : "bg-transparent text-[#b3bccb]"
+                  }`}
+                >
+                  {hasChildren ? <ChevronToggle open={open} /> : <span className="text-[11px] font-black leading-none">•</span>}
+                </span>
+                <span
+                  className={`min-w-0 flex-1 truncate text-[13px] ${
+                    selected ? "font-extrabold text-[#0f2a5f]" : "font-semibold text-[#47505f]"
+                  }`}
+                >
+                  {chapter.title}
+                </span>
+              </button>
+
+              {hasChildren && open && (
+                <div className="mt-1 space-y-1">{render(chapter.id, depth + 1)}</div>
+              )}
+            </div>
+          );
+        });
+
+    return <div className="space-y-1">{render(null, 0)}</div>;
+  }
+
   function ChapterTree({
     chapters,
     rootParentId,
@@ -1568,7 +1896,7 @@ function MobileHeader({
                       return;
                     }
                   
-                    if (!isFolder && hasChildren) {
+                    if (hasChildren) {
                       onToggle(c.id);
                       return;
                     }
@@ -2743,16 +3071,16 @@ function ChevronLeft() {
 function ChevronToggle({ open }: { open: boolean }) {
     return (
       <svg
-        width="11"
-        height="11"
+        width="12"
+        height="12"
         viewBox="0 0 24 24"
         fill="none"
-        className={`transition-transform ${open ? "rotate-180" : ""}`}
+        className={`block transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}
       >
         <path
-          d="M6 9L12 15L18 9"
+          d="M9 6L15 12L9 18"
           stroke="currentColor"
-          strokeWidth="2.8"
+          strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
