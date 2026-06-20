@@ -1957,10 +1957,60 @@ function MobileHeader({
     allQuestions: Question[];
   }) {
     const detailTapStart = useRef<{ x: number; y: number } | null>(null);
+    const currentIndex = question ? questions.findIndex((q) => q.id === question.id) : -1;
   
+    const goPrev = () => {
+        if (currentIndex <= 0) return;
+        setQuestionId(questions[currentIndex - 1].id);
+        setShowAnswer(false);
+    };
+      
+    const goNext = () => {
+        if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
+        setQuestionId(questions[currentIndex + 1].id);
+        setShowAnswer(false);
+    };
+
+    useEffect(() => {
+      const isEditableTarget = (target: EventTarget | null) => {
+        if (!(target instanceof HTMLElement)) return false;
+
+        return Boolean(
+          target.closest(
+            'input, textarea, select, button, a, [contenteditable="true"], [role="textbox"]'
+          )
+        );
+      };
+
+      const handleDetailKeyDown = (e: KeyboardEvent) => {
+        if (e.defaultPrevented || e.isComposing || isEditableTarget(e.target)) return;
+
+        if (e.key === "Enter") {
+          e.preventDefault();
+          setShowAnswer(true);
+          return;
+        }
+
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          goPrev();
+          return;
+        }
+
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          goNext();
+        }
+      };
+
+      if (!question) return;
+
+      window.addEventListener("keydown", handleDetailKeyDown);
+      return () => window.removeEventListener("keydown", handleDetailKeyDown);
+    }, [currentIndex, question, questions, setQuestionId, setShowAnswer]);
+
     if (!question) return <Empty text="문제를 선택해줘." />;
-  
-    const currentIndex = questions.findIndex((q) => q.id === question.id);
+
     const chapterQuestions = allQuestions.filter(
       (q) => q.chapterId === question.chapterId
     );
@@ -1969,16 +2019,6 @@ function MobileHeader({
       (q) => q.id === question.id
     );
     const currentImportanceStars = getQuestionImportanceStars(question);
-  
-    const goPrev = () => {
-        if (currentIndex <= 0) return;
-        setQuestionId(questions[currentIndex - 1].id);
-    };
-      
-    const goNext = () => {
-        if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
-        setQuestionId(questions[currentIndex + 1].id);
-    };
 
     const handleLawClick = (e: React.MouseEvent<HTMLDivElement>) => {
         const target = e.target as HTMLElement;
