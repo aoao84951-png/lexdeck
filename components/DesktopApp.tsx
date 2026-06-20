@@ -310,7 +310,6 @@ export default function DesktopApp() {
   const [questionSortOrder, setQuestionSortOrder] = useState<"latest" | "oldest">("oldest");
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [sidebarExpandedIds, setSidebarExpandedIds] = useState<string[]>([]);
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [actionChapterId, setActionChapterId] = useState<string | null>(null);
@@ -355,7 +354,6 @@ export default function DesktopApp() {
       search,
       expandedIds,
       currentParentId,
-      isContentExpanded,
     };
   
     if (isHistoryMoving.current) {
@@ -371,7 +369,7 @@ export default function DesktopApp() {
   
     window.history.pushState(state, "", window.location.href);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId, isContentExpanded]);
+  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId]);
   
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -388,7 +386,6 @@ export default function DesktopApp() {
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
       setCurrentParentId(state.currentParentId ?? null);
-      setIsContentExpanded(state.isContentExpanded ?? false);
   
       setFormOpen(false);
       setSubjectFormOpen(false);
@@ -422,7 +419,6 @@ export default function DesktopApp() {
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
       setCurrentParentId(state.currentParentId ?? null);
-      setIsContentExpanded(state.isContentExpanded ?? false);
     } catch {
       localStorage.removeItem(STORAGE_KEY);
     }
@@ -973,8 +969,6 @@ useEffect(() => {
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
           onHome={screen !== "subjects" ? goHome : undefined}
           onAddFolder={screen === "chapters" ? () => addFolder(currentParentId) : undefined}
-          onToggleExpand={screen !== "subjects" ? () => setIsContentExpanded((prev) => !prev) : undefined}
-          isContentExpanded={isContentExpanded}
           eyebrow={
             screen === "subjects"
               ? "LEXDECK"
@@ -1401,8 +1395,6 @@ function MobileHeader({
     onDelete,
     onHome,
     onAddFolder,
-    onToggleExpand,
-    isContentExpanded = false,
     chapterMode = false,
     screenTitleFix = false,
     sortOrder,
@@ -1417,8 +1409,6 @@ function MobileHeader({
     onDelete?: () => void;
     onHome?: () => void;
     onAddFolder?: () => void;
-    onToggleExpand?: () => void;
-    isContentExpanded?: boolean;
     chapterMode?: boolean;
     screenTitleFix?: boolean;
     sortOrder?: "latest" | "oldest";
@@ -1429,21 +1419,10 @@ function MobileHeader({
             <header>
             <div className="flex h-4 items-center justify-between">
               <div className="flex min-w-0 items-center gap-2">
-                {onToggleExpand && (
-                  <button
-                    onClick={onToggleExpand}
-                    className="hidden h-4 w-4 translate-x-[1px] items-center justify-center text-[#8a94a6] active:scale-95 xl:flex"
-                    aria-label={isContentExpanded ? "목록 보기" : "전체화면"}
-                  >
-                    <span className="text-[14px] leading-none">
-                      {isContentExpanded ? "‹" : "⤢"}
-                    </span>
-                  </button>
-                )}
                 <p
                   className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
                   style={{
-                    transform: showBack && !onToggleExpand ? "translateX(3px)" : "translateX(1px)",
+                    transform: showBack ? "translateX(3px)" : "translateX(1px)",
                   }}
                 >
                   {eyebrow}
@@ -1513,21 +1492,10 @@ function MobileHeader({
         <header>
           <div className="flex h-4 items-center justify-between">
             <div className="flex min-w-0 items-center gap-2">
-              {onToggleExpand && (
-                <button
-                  onClick={onToggleExpand}
-                  className="hidden h-4 w-4 translate-x-[1px] items-center justify-center text-[#8a94a6] active:scale-95 xl:flex"
-                  aria-label={isContentExpanded ? "목록 보기" : "전체화면"}
-                >
-                  <span className="text-[14px] leading-none">
-                    {isContentExpanded ? "‹" : "⤢"}
-                  </span>
-                </button>
-              )}
               <p
                   className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
                   style={{
-                  transform: showBack && !onToggleExpand ? "translateX(3px)" : "translateX(1px)",
+                  transform: showBack ? "translateX(3px)" : "translateX(1px)",
                   }}
               >
                   {eyebrow}
