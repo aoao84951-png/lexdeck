@@ -1012,7 +1012,7 @@ useEffect(() => {
           />
 
             {screen === "subjects" && (
-                <div className="mt-6 xl:hidden">
+                <div className="mt-6">
                 {subjects.length === 0 ? (
                 <Empty text="등록된 과목이 없어." />
                 ) : (
@@ -1077,14 +1077,6 @@ useEffect(() => {
           )}
         </div>
        )}
-
-        {screen === "subjects" && (
-        <div className="mt-10 hidden xl:block rounded-[28px] border border-dashed border-[#dce2ee] bg-[#fbfcfe] px-8 py-16 text-center">
-            <p className="text-[14px] font-bold text-[#8a94a6]">
-            왼쪽에서 과목을 선택해줘.
-            </p>
-        </div>
-        )}
 
         {screen === "chapters" && (
             <div className="mt-6">
