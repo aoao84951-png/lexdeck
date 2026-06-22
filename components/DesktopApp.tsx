@@ -2165,7 +2165,7 @@ function MobileHeader({
 
         if (e.key === "Enter") {
           e.preventDefault();
-          setShowAnswer(true);
+          setShowAnswer(!showAnswer);
           return;
         }
 
@@ -2185,7 +2185,7 @@ function MobileHeader({
 
       window.addEventListener("keydown", handleDetailKeyDown);
       return () => window.removeEventListener("keydown", handleDetailKeyDown);
-    }, [currentIndex, question, questions, setQuestionId, setShowAnswer]);
+    }, [currentIndex, question, questions, setQuestionId, setShowAnswer, showAnswer]);
 
     if (!question) return <Empty text="문제를 선택해줘." />;
 
