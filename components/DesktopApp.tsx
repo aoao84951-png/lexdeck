@@ -2528,7 +2528,12 @@ function MobileHeader({
       );
     };
 
-    const pageSize = (pagerWidth || 0) + 56;
+    const safePagerWidth =
+      pagerWidth ||
+      pagerRef.current?.clientWidth ||
+      (typeof window !== "undefined" ? window.innerWidth : 0);
+    const pageSize = safePagerWidth + 56;
+    const shouldRenderAdjacentPages = safePagerWidth > 0;
     const pageTransition = pagerDragging
       ? "none"
       : pagerAnimating
@@ -2548,7 +2553,7 @@ function MobileHeader({
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
       >
-        {prevQuestion && (
+        {shouldRenderAdjacentPages && prevQuestion && (
           <div
             className="pointer-events-none absolute left-0 top-0 w-full"
             style={{
@@ -2573,7 +2578,7 @@ function MobileHeader({
           {renderQuestionPage(question, showAnswer, true)}
         </div>
 
-        {nextQuestion && (
+        {shouldRenderAdjacentPages && nextQuestion && (
           <div
             className="pointer-events-none absolute left-0 top-0 w-full"
             style={{
