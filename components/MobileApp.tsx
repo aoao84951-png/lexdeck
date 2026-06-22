@@ -450,6 +450,26 @@ export default function MobileApp() {
   }, []);
 
   useEffect(() => {
+    if (screen !== "detail") return;
+
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverscroll = html.style.overscrollBehaviorY;
+    const prevBodyOverscroll = body.style.overscrollBehaviorY;
+    const prevBodyOverflow = body.style.overflow;
+
+    html.style.overscrollBehaviorY = "none";
+    body.style.overscrollBehaviorY = "none";
+    body.style.overflow = "hidden";
+
+    return () => {
+      html.style.overscrollBehaviorY = prevHtmlOverscroll;
+      body.style.overscrollBehaviorY = prevBodyOverscroll;
+      body.style.overflow = prevBodyOverflow;
+    };
+  }, [screen]);
+
+  useEffect(() => {
     const loadData = async () => {
       const { data, error } = await supabase
         .from("ox_data")
@@ -1732,261 +1752,479 @@ function MobileDetail({
   allQuestions: Question[];
 }) {
   const detailTapStart = useRef<{ x: number; y: number } | null>(null);
+  const detailSwipeStart = useRef<{
+    x: number;
+    y: number;
+    width: number;
+    pointerId: number;
+  } | null>(null);
+  const detailSwipeWidth = useRef(0);
+  const detailSwipeMoved = useRef(false);
+  const detailSwipeDirection = useRef<"horizontal" | "vertical" | null>(null);
+  const detailSwipeLastPoint = useRef<{ x: number; time: number } | null>(null);
+  const detailSwipeVelocityX = useRef(0);
+  const detailSwipeDragXRef = useRef(0);
+  const [detailSwipeDragX, setDetailSwipeDragX] = useState(0);
+  const [detailSwipeAnimating, setDetailSwipeAnimating] = useState(false);
 
   if (!question) return <Empty text="문제를 선택해줘." />;
 
   const currentIndex = questions.findIndex((q) => q.id === question.id);
-  const chapterQuestions = allQuestions.filter(
-    (q) => q.chapterId === question.chapterId,
-  );
 
-  const originalQuestionIndex = chapterQuestions.findIndex(
-    (q) => q.id === question.id,
-  );
-  const currentImportanceStars = getQuestionImportanceStars(question);
+  const currentQuestionIndexInChapter = (displayQuestion: Question) => {
+    const chapterQuestions = allQuestions.filter(
+      (q) => q.chapterId === displayQuestion.chapterId,
+    );
+
+    return chapterQuestions.findIndex((q) => q.id === displayQuestion.id);
+  };
+
+  const getAdjacentQuestion = (direction: "prev" | "next") => {
+    if (currentIndex === -1) return null;
+
+    const adjacentIndex = direction === "prev" ? currentIndex - 1 : currentIndex + 1;
+    if (adjacentIndex < 0 || adjacentIndex >= questions.length) return null;
+
+    return questions[adjacentIndex];
+  };
 
   const goPrev = () => {
-    if (currentIndex <= 0) return;
-    setQuestionId(questions[currentIndex - 1].id);
+    const prevQuestion = getAdjacentQuestion("prev");
+    if (!prevQuestion) return;
+    setQuestionId(prevQuestion.id);
   };
 
   const goNext = () => {
-    if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
-    setQuestionId(questions[currentIndex + 1].id);
+    const nextQuestion = getAdjacentQuestion("next");
+    if (!nextQuestion) return;
+    setQuestionId(nextQuestion.id);
   };
 
-  const handleLawClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const updateDetailSwipeDragX = (value: number) => {
+    detailSwipeDragXRef.current = value;
+    setDetailSwipeDragX(value);
+  };
+
+  const resetDetailSwipeState = () => {
+    detailTapStart.current = null;
+    detailSwipeStart.current = null;
+    detailSwipeMoved.current = false;
+    detailSwipeDirection.current = null;
+    detailSwipeLastPoint.current = null;
+    detailSwipeVelocityX.current = 0;
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
 
-    const disableButton = target.closest(
-      "[data-disable-law-link]",
-    ) as HTMLElement | null;
+    if (
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest("select") ||
+      target.closest("[data-law-name][data-article-no]")
+    ) {
+      resetDetailSwipeState();
+      return;
+    }
 
-    if (disableButton) {
-      e.stopPropagation();
+    const width = e.currentTarget.getBoundingClientRect().width;
 
-      const key = disableButton.dataset.autoLinkKey;
-      if (!key) return;
+    detailTapStart.current = { x: e.clientX, y: e.clientY };
+    detailSwipeWidth.current = width;
+    detailSwipeStart.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width,
+      pointerId: e.pointerId,
+    };
+    detailSwipeMoved.current = false;
+    detailSwipeDirection.current = null;
+    detailSwipeLastPoint.current = { x: e.clientX, time: performance.now() };
+    detailSwipeVelocityX.current = 0;
+    setDetailSwipeAnimating(false);
+  };
 
-      updateQuestion(question.id, {
-        disabledAutoLinks: [...(question.disabledAutoLinks ?? []), key],
-      });
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!detailSwipeStart.current || e.pointerId !== detailSwipeStart.current.pointerId) return;
+
+    const deltaX = e.clientX - detailSwipeStart.current.x;
+    const deltaY = e.clientY - detailSwipeStart.current.y;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const now = performance.now();
+    const lastPoint = detailSwipeLastPoint.current;
+
+    if (lastPoint) {
+      const elapsed = Math.max(1, now - lastPoint.time);
+      detailSwipeVelocityX.current = (e.clientX - lastPoint.x) / elapsed;
+    }
+    detailSwipeLastPoint.current = { x: e.clientX, time: now };
+
+    if (!detailSwipeDirection.current) {
+      if (absX < 8 && absY < 8) return;
+
+      if (absX >= 10 && absX > absY * 1.15) {
+        detailSwipeDirection.current = "horizontal";
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }
+      } else if (absY >= 8 && absY > absX * 0.85) {
+        detailSwipeDirection.current = "vertical";
+        updateDetailSwipeDragX(0);
+        return;
+      } else {
+        return;
+      }
+    }
+
+    if (detailSwipeDirection.current !== "horizontal") return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const hasPrev = Boolean(getAdjacentQuestion("prev"));
+    const hasNext = Boolean(getAdjacentQuestion("next"));
+    const limitedDeltaX = Math.max(
+      -detailSwipeStart.current.width,
+      Math.min(deltaX, detailSwipeStart.current.width),
+    );
+
+    if ((limitedDeltaX > 0 && !hasPrev) || (limitedDeltaX < 0 && !hasNext)) {
+      updateDetailSwipeDragX(limitedDeltaX * 0.14);
+    } else {
+      updateDetailSwipeDragX(limitedDeltaX);
+    }
+
+    detailSwipeMoved.current = true;
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!detailTapStart.current) return;
+
+    const movedX = Math.abs(e.clientX - detailTapStart.current.x);
+    const movedY = Math.abs(e.clientY - detailTapStart.current.y);
+
+    if (
+      detailSwipeMoved.current &&
+      detailSwipeStart.current &&
+      detailSwipeDirection.current === "horizontal"
+    ) {
+      const width = detailSwipeStart.current.width;
+      const threshold = Math.max(46, width * 0.16);
+      const dragX = detailSwipeDragXRef.current;
+      const velocityX = detailSwipeVelocityX.current;
+      const direction = dragX > 0 ? "prev" : "next";
+      const isFastSwipe =
+        Math.abs(velocityX) >= 0.45 && Math.sign(velocityX) === Math.sign(dragX);
+      const adjacent = getAdjacentQuestion(direction);
+
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+
+      resetDetailSwipeState();
+      setDetailSwipeAnimating(true);
+
+      if (adjacent && (Math.abs(dragX) >= threshold || isFastSwipe)) {
+        updateDetailSwipeDragX(direction === "prev" ? width : -width);
+        window.setTimeout(() => {
+          setDetailSwipeAnimating(false);
+          updateDetailSwipeDragX(0);
+          setQuestionId(adjacent.id);
+        }, 260);
+      } else {
+        updateDetailSwipeDragX(0);
+        window.setTimeout(() => {
+          setDetailSwipeAnimating(false);
+        }, 260);
+      }
 
       return;
     }
 
-    const button = target.closest(
-      "[data-law-name][data-article-no]",
-    ) as HTMLElement | null;
+    if (movedX > 10 || movedY > 10) {
+      resetDetailSwipeState();
+      updateDetailSwipeDragX(0);
+      return;
+    }
 
-    if (!button) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const third = rect.width / 3;
 
-    e.stopPropagation();
+    if (x < third) {
+      goPrev();
+    } else if (x > third * 2) {
+      goNext();
+    } else {
+      setShowAnswer(!showAnswer);
+    }
 
-    const lawName = button.dataset.lawName;
-    const articleNo = button.dataset.articleNo;
-
-    if (!lawName || !articleNo) return;
-
-    onOpenLawArticle(lawName, articleNo);
+    resetDetailSwipeState();
   };
 
-  return (
-    <div
-      className="min-h-[calc(100svh-120px)]"
-      onPointerDown={(e) => {
-        detailTapStart.current = { x: e.clientX, y: e.clientY };
-      }}
-      onPointerUp={(e) => {
-        if (!detailTapStart.current) return;
+  const handlePointerCancel = (e?: React.PointerEvent<HTMLDivElement>) => {
+    if (e && e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
 
-        const target = e.target as HTMLElement;
+    resetDetailSwipeState();
+    setDetailSwipeAnimating(true);
+    updateDetailSwipeDragX(0);
+    window.setTimeout(() => setDetailSwipeAnimating(false), 260);
+  };
 
-        if (target.closest("button, a, [data-law-name][data-article-no]")) {
-          detailTapStart.current = null;
-          return;
-        }
+  const createLawClickHandler = (displayQuestion: Question) =>
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
 
-        const movedX = Math.abs(e.clientX - detailTapStart.current.x);
-        const movedY = Math.abs(e.clientY - detailTapStart.current.y);
+      const disableButton = target.closest(
+        "[data-disable-law-link]",
+      ) as HTMLElement | null;
 
-        if (movedX > 10 || movedY > 10) {
-          detailTapStart.current = null;
-          return;
-        }
+      if (disableButton) {
+        e.stopPropagation();
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const third = rect.width / 3;
+        const key = disableButton.dataset.autoLinkKey;
+        if (!key) return;
 
-        if (x < third) {
-          goPrev();
-        } else if (x > third * 2) {
-          goNext();
-        } else {
-          setShowAnswer(!showAnswer);
-        }
+        updateQuestion(displayQuestion.id, {
+          disabledAutoLinks: [...(displayQuestion.disabledAutoLinks ?? []), key],
+        });
 
-        detailTapStart.current = null;
-      }}
-    >
-      <section
-        className={`relative rounded-[22px] border px-5 py-5 ${
-          currentImportanceStars
-            ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_8px_22px_rgba(15,42,95,0.12)]"
-            : "border-[#e4e8f0] bg-white"
-        }`}
-      >
-        <div className={question.memorized ? "opacity-40" : ""}>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="text-[12px] font-bold text-[#8a94a6]">
-              Q{originalQuestionIndex + 1}.
-            </p>
-          </div>
+        return;
+      }
 
-          <div className="flex min-h-[72px] items-center justify-center py-3">
-            <JustifiedText
-              html={linkLawText(
-                normalizeQuestionHtml(question.textHtml),
-                question.disabledAutoLinks ?? [],
-              )}
-              className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
-                getQuestionImportanceStars(question)
-                  ? "text-[#d95c5c]"
-                  : "text-[#111827]"
-              }`}
-              onClick={handleLawClick}
-            />
-          </div>
-        </div>
+      const button = target.closest(
+        "[data-law-name][data-article-no]",
+      ) as HTMLElement | null;
 
-        <div className="absolute right-5 top-5 flex gap-1.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleQuestionImportance(question.id);
-            }}
-            className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
-            aria-label={`중요도 ${currentImportanceStars}단계`}
-            title="누를 때마다 중요도 1 → 2 → 3 → 해제로 변경"
-          >
-            <span className="relative flex h-7 w-7 items-center justify-center">
-              <StarIcon active={Boolean(currentImportanceStars)} size={22} />
-              {currentImportanceStars ? (
-                <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
-                  {currentImportanceStars}
-                </span>
-              ) : null}
-            </span>
-          </button>
+      if (!button) return;
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              updateQuestion(question.id, { memorized: !question.memorized });
-            }}
-            className={`flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
-              question.memorized
-                ? "border-[#0f2a5f] bg-[#0f2a5f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
-                : "border-[#dce2ee] bg-[#f8fafc]"
-            }`}
-            aria-label="암기완료"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M5.5 12.5L10 17L18.8 7.5"
-                stroke={question.memorized ? "white" : "#9aa3b2"}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
-        </div>
-      </section>
+      e.stopPropagation();
 
-      {showAnswer && (
+      const lawName = button.dataset.lawName;
+      const articleNo = button.dataset.articleNo;
+
+      if (!lawName || !articleNo) return;
+
+      onOpenLawArticle(lawName, articleNo);
+    };
+
+  const renderQuestionPane = (displayQuestion: Question) => {
+    const displayQuestionIndex = currentQuestionIndexInChapter(displayQuestion);
+    const currentImportanceStars = getQuestionImportanceStars(displayQuestion);
+    const handleLawClick = createLawClickHandler(displayQuestion);
+
+    return (
+      <div className="h-full overflow-y-auto overscroll-contain pb-3 [touch-action:pan-y]">
         <section
-          className={`px-5 pb-2 pt-5 ${question.memorized ? "opacity-40" : ""}`}
+          className={`relative rounded-[22px] border px-5 py-5 ${
+            currentImportanceStars
+              ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_8px_22px_rgba(15,42,95,0.12)]"
+              : "border-[#e4e8f0] bg-white"
+          }`}
         >
-          <div className="flex items-center justify-between">
-            <p className="text-[13px] font-bold text-[#8a94a6]">정답</p>
+          <div className={displayQuestion.memorized ? "opacity-40" : ""}>
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[12px] font-bold text-[#8a94a6]">
+                Q{displayQuestionIndex + 1}.
+              </p>
+            </div>
 
-            <div
-              className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
-                question.answer === "O"
-                  ? "bg-[#edf7f0] text-[#4d8b63]"
-                  : "bg-[#fff0f0] text-[#d95c5c]"
-              }`}
-            >
-              {question.answer}
+            <div className="flex min-h-[72px] items-center justify-center py-3">
+              <JustifiedText
+                html={linkLawText(
+                  normalizeQuestionHtml(displayQuestion.textHtml),
+                  displayQuestion.disabledAutoLinks ?? [],
+                )}
+                className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
+                  getQuestionImportanceStars(displayQuestion)
+                    ? "text-[#d95c5c]"
+                    : "text-[#111827]"
+                }`}
+                onClick={handleLawClick}
+              />
             </div>
           </div>
 
-          <div className="mt-5 h-px bg-[#e5e7eb]" />
+          <div className="absolute right-5 top-5 flex gap-1.5">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleQuestionImportance(displayQuestion.id);
+              }}
+              className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+              aria-label={`중요도 ${currentImportanceStars}단계`}
+              title="누를 때마다 중요도 1 → 2 → 3 → 해제로 변경"
+            >
+              <span className="relative flex h-7 w-7 items-center justify-center">
+                <StarIcon active={Boolean(currentImportanceStars)} size={22} />
+                {currentImportanceStars ? (
+                  <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
+                    {currentImportanceStars}
+                  </span>
+                ) : null}
+              </span>
+            </button>
 
-          <div className="mt-5">
-            <p className="mb-3 text-[13px] font-bold text-[#8a94a6]">해설</p>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateQuestion(displayQuestion.id, { memorized: !displayQuestion.memorized });
+              }}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
+                displayQuestion.memorized
+                  ? "border-[#0f2a5f] bg-[#0f2a5f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
+                  : "border-[#dce2ee] bg-[#f8fafc]"
+              }`}
+              aria-label="암기완료"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M5.5 12.5L10 17L18.8 7.5"
+                  stroke={displayQuestion.memorized ? "white" : "#9aa3b2"}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        </section>
 
-            <JustifiedText
-              className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
-              html={linkLawText(
-                question.explanationHtml,
-                question.disabledAutoLinks ?? [],
-              )}
-              onClick={handleLawClick}
-            />
-            {(question.extraPoints ?? []).length > 0 && (
-              <div className="mt-6">
-                <p className="mb-3 pl-[1px] text-[13px] font-bold text-[#8a94a6]">
-                  추가 포인트
-                </p>
+        {showAnswer && (
+          <section
+            className={`px-5 pb-2 pt-5 ${displayQuestion.memorized ? "opacity-40" : ""}`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[13px] font-bold text-[#8a94a6]">정답</p>
 
-                <div className="space-y-3">
-                  {(question.extraPoints ?? []).map((point, index) => (
-                    <div
-                      key={index}
-                      className="rounded-2xl bg-[#f5f6fa] px-4 py-3"
-                    >
-                      <div className="-ml-1 flex items-center gap-2">
-                        {point.category && (
-                          <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
-                            {point.category}
-                          </span>
-                        )}
+              <div
+                className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
+                  displayQuestion.answer === "O"
+                    ? "bg-[#edf7f0] text-[#4d8b63]"
+                    : "bg-[#fff0f0] text-[#d95c5c]"
+                }`}
+              >
+                {displayQuestion.answer}
+              </div>
+            </div>
 
-                        {point.title && (
+            <div className="mt-5 h-px bg-[#e5e7eb]" />
+
+            <div className="mt-5">
+              <p className="mb-3 text-[13px] font-bold text-[#8a94a6]">해설</p>
+
+              <JustifiedText
+                className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
+                html={linkLawText(
+                  displayQuestion.explanationHtml,
+                  displayQuestion.disabledAutoLinks ?? [],
+                )}
+                onClick={handleLawClick}
+              />
+              {(displayQuestion.extraPoints ?? []).length > 0 && (
+                <div className="mt-6">
+                  <p className="mb-3 pl-[1px] text-[13px] font-bold text-[#8a94a6]">
+                    추가 포인트
+                  </p>
+
+                  <div className="space-y-3">
+                    {(displayQuestion.extraPoints ?? []).map((point, index) => (
+                      <div
+                        key={index}
+                        className="rounded-2xl bg-[#f5f6fa] px-4 py-3"
+                      >
+                        <div className="-ml-1 flex items-center gap-2">
+                          {point.category && (
+                            <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
+                              {point.category}
+                            </span>
+                          )}
+
+                          {point.title && (
+                            <JustifiedText
+                              className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
+                              html={linkLawText(
+                                point.title,
+                                displayQuestion.disabledAutoLinks ?? [],
+                              )}
+                              onClick={handleLawClick}
+                            />
+                          )}
+                        </div>
+
+                        {point.descriptionHtml && (
                           <JustifiedText
-                            className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
+                            className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
                             html={linkLawText(
-                              point.title,
-                              question.disabledAutoLinks ?? [],
+                              point.descriptionHtml,
+                              displayQuestion.disabledAutoLinks ?? [],
                             )}
                             onClick={handleLawClick}
                           />
                         )}
                       </div>
-
-                      {point.descriptionHtml && (
-                        <JustifiedText
-                          className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
-                          html={linkLawText(
-                            point.descriptionHtml,
-                            question.disabledAutoLinks ?? [],
-                          )}
-                          onClick={handleLawClick}
-                        />
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </section>
+              )}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+  };
+
+  const previewQuestion =
+    detailSwipeDragX > 0
+      ? getAdjacentQuestion("prev")
+      : detailSwipeDragX < 0
+      ? getAdjacentQuestion("next")
+      : null;
+  const swipeWidth = detailSwipeStart.current?.width || detailSwipeWidth.current || 0;
+
+  return (
+    <div
+      className="relative h-[calc(100svh-132px)] overflow-hidden [overscroll-behavior:none] [touch-action:pan-y]"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerCancel}
+    >
+      {previewQuestion && (
+        <div
+          className={`pointer-events-none absolute inset-0 will-change-transform ${
+            detailSwipeAnimating
+              ? "transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+              : ""
+          }`}
+          style={{
+            transform: `translateX(${
+              detailSwipeDragX > 0
+                ? detailSwipeDragX - swipeWidth
+                : detailSwipeDragX + swipeWidth
+            }px)`,
+          }}
+        >
+          {renderQuestionPane(previewQuestion)}
+        </div>
       )}
+
+      <div
+        className={`absolute inset-0 will-change-transform ${
+          detailSwipeAnimating
+            ? "transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+            : ""
+        }`}
+        style={{ transform: `translateX(${detailSwipeDragX}px)` }}
+      >
+        {renderQuestionPane(question)}
+      </div>
     </div>
   );
 }
