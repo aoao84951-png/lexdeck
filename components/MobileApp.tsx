@@ -1993,7 +1993,11 @@ function MobileDetail({
       setDetailSwipeAnimating(true);
 
       if (adjacent && (Math.abs(dragX) >= threshold || isFastSwipe)) {
-        updateDetailSwipeDragX(direction === "prev" ? width : -width);
+        updateDetailSwipeDragX(
+          direction === "prev"
+            ? width + 28
+            : -(width + 28),
+        );
         window.setTimeout(() => {
           setDetailSwipeAnimating(false);
           updateDetailSwipeDragX(0);
@@ -2253,6 +2257,7 @@ function MobileDetail({
       ? getAdjacentQuestion("next")
       : null;
   const swipeWidth = detailSwipeStart.current?.width || detailSwipeWidth.current || 0;
+  const detailSwipePageGap = 28;
 
   return (
     <div
@@ -2272,8 +2277,8 @@ function MobileDetail({
           style={{
             transform: `translateX(${
               detailSwipeDragX > 0
-                ? detailSwipeDragX - swipeWidth
-                : detailSwipeDragX + swipeWidth
+                ? detailSwipeDragX - swipeWidth - detailSwipePageGap
+                : detailSwipeDragX + swipeWidth + detailSwipePageGap
             }px)`,
           }}
         >
