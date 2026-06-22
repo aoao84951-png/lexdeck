@@ -450,24 +450,80 @@ export default function MobileApp() {
   }, []);
 
   useEffect(() => {
-    if (screen !== "detail") return;
-
     const html = document.documentElement;
     const body = document.body;
-    const prevHtmlOverscroll = html.style.overscrollBehaviorY;
-    const prevBodyOverscroll = body.style.overscrollBehaviorY;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevHtmlOverflow = html.style.overflow;
     const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyWidth = body.style.width;
+    let lastTouchY = 0;
 
-    html.style.overscrollBehaviorY = "none";
-    body.style.overscrollBehaviorY = "none";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
+    html.style.overflow = "hidden";
     body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.width = "100%";
+
+    const findScrollableParent = (target: EventTarget | null) => {
+      let element = target as HTMLElement | null;
+
+      while (element && element !== body && element !== html) {
+        const style = window.getComputedStyle(element);
+        const canScrollY =
+          /(auto|scroll)/.test(style.overflowY) &&
+          element.scrollHeight > element.clientHeight;
+
+        if (canScrollY) return element;
+
+        element = element.parentElement;
+      }
+
+      return null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      lastTouchY = event.touches[0]?.clientY ?? 0;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const currentY = event.touches[0]?.clientY ?? lastTouchY;
+      const deltaY = currentY - lastTouchY;
+      lastTouchY = currentY;
+
+      const scrollable = findScrollableParent(event.target);
+
+      if (!scrollable) {
+        event.preventDefault();
+        return;
+      }
+
+      const atTop = scrollable.scrollTop <= 0;
+      const atBottom =
+        Math.ceil(scrollable.scrollTop + scrollable.clientHeight) >=
+        scrollable.scrollHeight;
+
+      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
 
     return () => {
-      html.style.overscrollBehaviorY = prevHtmlOverscroll;
-      body.style.overscrollBehaviorY = prevBodyOverscroll;
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      html.style.overflow = prevHtmlOverflow;
       body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.width = prevBodyWidth;
     };
-  }, [screen]);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -909,7 +965,17 @@ export default function MobileApp() {
 
   return (
     <>
-      <main className="min-h-[100svh] bg-white text-[#111827]">
+      <style jsx global>{`
+        .mobile-scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .mobile-scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      <main className="mobile-scrollbar-hide fixed inset-0 overflow-y-auto overscroll-none bg-white text-[#111827] [touch-action:pan-y]">
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
           {isStandalone && (
             <button
@@ -2018,7 +2084,7 @@ function MobileDetail({
     const handleLawClick = createLawClickHandler(displayQuestion);
 
     return (
-      <div className="h-full overflow-y-auto overscroll-contain pb-3 [touch-action:pan-y]">
+      <div className="mobile-scrollbar-hide h-full overflow-y-auto overscroll-none pb-3 [touch-action:pan-y]">
         <section
           className={`relative rounded-[22px] border px-5 py-5 ${
             currentImportanceStars
@@ -2190,7 +2256,7 @@ function MobileDetail({
 
   return (
     <div
-      className="relative h-[calc(100svh-132px)] overflow-hidden [overscroll-behavior:none] [touch-action:pan-y]"
+      className="mobile-scrollbar-hide relative h-[calc(100svh-132px)] overflow-hidden overscroll-none [touch-action:pan-y]"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
