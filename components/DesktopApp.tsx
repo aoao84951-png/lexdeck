@@ -432,6 +432,81 @@ useEffect(() => {
   setIsStandalone(standalone);
 }, []);
 
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverscroll = html.style.overscrollBehaviorY;
+    const previousBodyOverscroll = body.style.overscrollBehaviorY;
+    const previousBodyOverflowX = body.style.overflowX;
+    let startY = 0;
+
+    html.style.overscrollBehaviorY = "none";
+    body.style.overscrollBehaviorY = "none";
+    body.style.overflowX = "hidden";
+
+    const getScrollableParent = (target: EventTarget | null) => {
+      let node = target instanceof HTMLElement ? target : null;
+
+      while (node && node !== body && node !== html) {
+        const style = window.getComputedStyle(node);
+        const canScrollY =
+          /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
+
+        if (canScrollY) return node;
+        node = node.parentElement;
+      }
+
+      return document.scrollingElement as HTMLElement | null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+      startY = event.touches[0].clientY;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (event.touches.length !== 1) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-allow-touch-overscroll='true']")) return;
+
+      const currentY = event.touches[0].clientY;
+      const deltaY = currentY - startY;
+      const scrollable = getScrollableParent(event.target);
+
+      if (!scrollable) {
+        event.preventDefault();
+        return;
+      }
+
+      const scrollTop = scrollable.scrollTop;
+      const maxScrollTop = scrollable.scrollHeight - scrollable.clientHeight;
+
+      if (maxScrollTop <= 0) {
+        event.preventDefault();
+        return;
+      }
+
+      const pullingDownAtTop = scrollTop <= 0 && deltaY > 0;
+      const pushingUpAtBottom = scrollTop >= maxScrollTop - 1 && deltaY < 0;
+
+      if (pullingDownAtTop || pushingUpAtBottom) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchstart", handleTouchStart, { passive: true });
+    document.addEventListener("touchmove", handleTouchMove, { passive: false });
+
+    return () => {
+      html.style.overscrollBehaviorY = previousHtmlOverscroll;
+      body.style.overscrollBehaviorY = previousBodyOverscroll;
+      body.style.overflowX = previousBodyOverflowX;
+      document.removeEventListener("touchstart", handleTouchStart);
+      document.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, []);
+
 useEffect(() => {
     const loadData = async () => {
     const { data, error } = await supabase
@@ -1957,19 +2032,122 @@ function MobileHeader({
     allQuestions: Question[];
   }) {
     const detailTapStart = useRef<{ x: number; y: number } | null>(null);
+    const pagerRef = useRef<HTMLDivElement | null>(null);
+    const swipeRef = useRef<{
+      startX: number;
+      startY: number;
+      lastX: number;
+      locked: "x" | "y" | null;
+      pointerId: number | null;
+      swiped: boolean;
+    } | null>(null);
+    const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const currentIndex = question ? questions.findIndex((q) => q.id === question.id) : -1;
-  
+    const prevQuestion = currentIndex > 0 ? questions[currentIndex - 1] : undefined;
+    const nextQuestion =
+      currentIndex >= 0 && currentIndex < questions.length - 1
+        ? questions[currentIndex + 1]
+        : undefined;
+    const [pagerWidth, setPagerWidth] = useState(0);
+    const [pagerOffset, setPagerOffset] = useState(0);
+    const [pagerDragging, setPagerDragging] = useState(false);
+    const [pagerAnimating, setPagerAnimating] = useState(false);
+
+    const finishPagerMove = (targetQuestion?: Question) => {
+      if (!targetQuestion) return;
+
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+
+      settleTimerRef.current = setTimeout(() => {
+        setQuestionId(targetQuestion.id);
+        setShowAnswer(false);
+        setPagerAnimating(false);
+        setPagerDragging(false);
+        setPagerOffset(0);
+        swipeRef.current = null;
+        detailTapStart.current = null;
+      }, 260);
+    };
+
     const goPrev = () => {
-        if (currentIndex <= 0) return;
-        setQuestionId(questions[currentIndex - 1].id);
+        if (!prevQuestion) return;
+        setQuestionId(prevQuestion.id);
         setShowAnswer(false);
     };
-      
+
     const goNext = () => {
-        if (currentIndex < 0 || currentIndex >= questions.length - 1) return;
-        setQuestionId(questions[currentIndex + 1].id);
+        if (!nextQuestion) return;
+        setQuestionId(nextQuestion.id);
         setShowAnswer(false);
     };
+
+    const snapPrev = () => {
+      if (!prevQuestion) {
+        setPagerAnimating(true);
+        setPagerDragging(false);
+        setPagerOffset(0);
+        if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = setTimeout(() => {
+          setPagerAnimating(false);
+          swipeRef.current = null;
+        }, 220);
+        return;
+      }
+
+      const width = pagerRef.current?.clientWidth || pagerWidth || window.innerWidth;
+      setPagerAnimating(true);
+      setPagerDragging(false);
+      setPagerOffset(width + 56);
+      finishPagerMove(prevQuestion);
+    };
+
+    const snapNext = () => {
+      if (!nextQuestion) {
+        setPagerAnimating(true);
+        setPagerDragging(false);
+        setPagerOffset(0);
+        if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = setTimeout(() => {
+          setPagerAnimating(false);
+          swipeRef.current = null;
+        }, 220);
+        return;
+      }
+
+      const width = pagerRef.current?.clientWidth || pagerWidth || window.innerWidth;
+      setPagerAnimating(true);
+      setPagerDragging(false);
+      setPagerOffset(-(width + 56));
+      finishPagerMove(nextQuestion);
+    };
+
+    useEffect(() => {
+      const node = pagerRef.current;
+      if (!node) return;
+
+      const updateWidth = () => setPagerWidth(node.clientWidth);
+      updateWidth();
+
+      const observer =
+        typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateWidth) : null;
+      observer?.observe(node);
+
+      window.addEventListener("resize", updateWidth);
+      return () => {
+        observer?.disconnect();
+        window.removeEventListener("resize", updateWidth);
+      };
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!pagerAnimating) setPagerOffset(0);
+    }, [question?.id, pagerAnimating]);
 
     useEffect(() => {
       const isEditableTarget = (target: EventTarget | null) => {
@@ -2011,233 +2189,402 @@ function MobileHeader({
 
     if (!question) return <Empty text="문제를 선택해줘." />;
 
-    const chapterQuestions = allQuestions.filter(
-      (q) => q.chapterId === question.chapterId
-    );
-    
-    const originalQuestionIndex = chapterQuestions.findIndex(
-      (q) => q.id === question.id
-    );
-    const currentImportanceStars = getQuestionImportanceStars(question);
-
-    const handleLawClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const handleLawClick = (targetQuestion: Question) => (e: React.MouseEvent<HTMLDivElement>) => {
         const target = e.target as HTMLElement;
-      
+
         const disableButton = target.closest("[data-disable-law-link]") as HTMLElement | null;
-      
+
         if (disableButton) {
           e.stopPropagation();
-      
+
           const key = disableButton.dataset.autoLinkKey;
           if (!key) return;
-      
-          updateQuestion(question.id, {
+
+          updateQuestion(targetQuestion.id, {
             disabledAutoLinks: [
-              ...(question.disabledAutoLinks ?? []),
+              ...(targetQuestion.disabledAutoLinks ?? []),
               key,
             ],
           });
-      
+
           return;
         }
-      
+
         const button = target.closest(
         "[data-law-name][data-article-no]"
         ) as HTMLElement | null;
-      
+
         if (!button) return;
-      
+
         e.stopPropagation();
-      
+
         const lawName = button.dataset.lawName;
         const articleNo = button.dataset.articleNo;
-      
+
         if (!lawName || !articleNo) return;
-      
+
         onOpenLawArticle(lawName, articleNo);
     };
-  
-    return (
-      <div
-        className="min-h-[calc(100svh-120px)]"
-        onPointerDown={(e) => {
-          detailTapStart.current = { x: e.clientX, y: e.clientY };
-        }}
-        onPointerUp={(e) => {
-          if (!detailTapStart.current) return;
-  
-          const target = e.target as HTMLElement;
-  
-          if (target.closest("button, a, [data-law-name][data-article-no]")) {
-            detailTapStart.current = null;
-            return;
-          }
-  
-          const movedX = Math.abs(e.clientX - detailTapStart.current.x);
-          const movedY = Math.abs(e.clientY - detailTapStart.current.y);
-  
-          if (movedX > 10 || movedY > 10) {
-            detailTapStart.current = null;
-            return;
-          }
-  
-          const rect = e.currentTarget.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const third = rect.width / 3;
-  
-          if (x < third) {
-            goPrev();
-          } else if (x > third * 2) {
-            goNext();
-          } else {
-            setShowAnswer(!showAnswer);
-          }
-  
-          detailTapStart.current = null;
-        }}
-      >
-        <section
-          className={`relative rounded-[22px] border px-5 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)] ${
-            currentImportanceStars
-              ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
-              : "border-[#e4e8f0] bg-white"
-          }`}
-        >
-          <div className={question.memorized ? "opacity-40" : ""}>
-          <div className="mb-3 flex items-center justify-between">
-          <p className="text-[12px] font-bold text-[#8a94a6]">
-            Q{originalQuestionIndex + 1}.
-          </p>
-  
-            
-          </div>
-  
-          <div className="flex min-h-[72px] items-center justify-center py-3">
-            <JustifiedText
-                html={linkLawText(
-                    normalizeQuestionHtml(question.textHtml),
-                    question.disabledAutoLinks ?? []
-                )}
-                className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
-                    getQuestionImportanceStars(question) ? "text-[#d95c5c]" : "text-[#111827]"
-                }`}
-                onClick={handleLawClick}
-            />
-          </div>
-          </div>
 
-          <div className="absolute right-5 top-5 flex gap-1.5">
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    toggleQuestionImportance(question.id);
-                }}
-                className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
-                aria-label={`중요도 ${currentImportanceStars}단계`}
-                title="누를 때마다 중요도 1 → 2 → 3 → 해제로 변경"
-            >
-                <span className="relative flex h-7 w-7 items-center justify-center">
-                    <StarIcon active={Boolean(currentImportanceStars)} size={22} />
-                    {currentImportanceStars ? (
-                        <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
-                            {currentImportanceStars}
-                        </span>
-                    ) : null}
-                </span>
-            </button>
+    const isInteractiveTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      return Boolean(target.closest("button, a, input, textarea, select, [contenteditable='true'], [data-law-name][data-article-no]"));
+    };
 
-            <button
-                type="button"
-                onClick={(e) => {
-                e.stopPropagation();
-                updateQuestion(question.id, { memorized: !question.memorized });
-                }}
-                className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all ${
-                question.memorized
-                    ? "border-[#0f2a5f] bg-[#0f2a5f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
-                    : "border-[#dce2ee] bg-[#f8fafc]"
-                }`}
-                aria-label="암기완료"
-            >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M5.5 12.5L10 17L18.8 7.5"
-                    stroke={question.memorized ? "white" : "#9aa3b2"}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      if (isInteractiveTarget(e.target)) return;
+      if (pagerAnimating) return;
+
+      const width = pagerRef.current?.clientWidth || e.currentTarget.clientWidth || window.innerWidth;
+      setPagerWidth(width);
+      detailTapStart.current = { x: e.clientX, y: e.clientY };
+      swipeRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        lastX: e.clientX,
+        locked: null,
+        pointerId: e.pointerId,
+        swiped: false,
+      };
+      setPagerDragging(false);
+      setPagerAnimating(false);
+    };
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+      const swipe = swipeRef.current;
+      if (!swipe || swipe.pointerId !== e.pointerId || pagerAnimating) return;
+
+      const dx = e.clientX - swipe.startX;
+      const dy = e.clientY - swipe.startY;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (!swipe.locked && (absX > 8 || absY > 8)) {
+        swipe.locked = absX > absY * 1.15 ? "x" : "y";
+        if (swipe.locked === "x") {
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {}
+          setPagerDragging(true);
+        }
+      }
+
+      if (swipe.locked !== "x") return;
+
+      e.preventDefault();
+      swipe.swiped = true;
+      swipe.lastX = e.clientX;
+
+      const blocked =
+        (dx > 0 && !prevQuestion) ||
+        (dx < 0 && !nextQuestion);
+      const nextOffset = blocked ? dx * 0.22 : dx;
+      setPagerOffset(nextOffset);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+      const swipe = swipeRef.current;
+
+      if (swipe && swipe.pointerId === e.pointerId && swipe.locked === "x") {
+        const width = pagerRef.current?.clientWidth || pagerWidth || window.innerWidth;
+        const dx = e.clientX - swipe.startX;
+        const threshold = Math.min(140, width * 0.22);
+
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch {}
+
+        if (dx <= -threshold && nextQuestion) {
+          snapNext();
+        } else if (dx >= threshold && prevQuestion) {
+          snapPrev();
+        } else {
+          setPagerAnimating(true);
+          setPagerDragging(false);
+          setPagerOffset(0);
+          if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+          settleTimerRef.current = setTimeout(() => {
+            setPagerAnimating(false);
+            swipeRef.current = null;
+          }, 240);
+        }
+
+        detailTapStart.current = null;
+        return;
+      }
+
+      if (swipe && swipe.pointerId === e.pointerId && swipe.locked === "y") {
+        swipeRef.current = null;
+        detailTapStart.current = null;
+        return;
+      }
+
+      if (!detailTapStart.current) return;
+
+      const target = e.target as HTMLElement;
+
+      if (isInteractiveTarget(target)) {
+        detailTapStart.current = null;
+        swipeRef.current = null;
+        return;
+      }
+
+      const movedX = Math.abs(e.clientX - detailTapStart.current.x);
+      const movedY = Math.abs(e.clientY - detailTapStart.current.y);
+
+      if (movedX > 10 || movedY > 10) {
+        detailTapStart.current = null;
+        swipeRef.current = null;
+        return;
+      }
+
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const third = rect.width / 3;
+
+      if (x < third) {
+        goPrev();
+      } else if (x > third * 2) {
+        goNext();
+      } else {
+        setShowAnswer(!showAnswer);
+      }
+
+      detailTapStart.current = null;
+      swipeRef.current = null;
+    };
+
+    const handlePointerCancel = () => {
+      swipeRef.current = null;
+      detailTapStart.current = null;
+      setPagerAnimating(true);
+      setPagerDragging(false);
+      setPagerOffset(0);
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = setTimeout(() => setPagerAnimating(false), 220);
+    };
+
+    const renderQuestionPage = (
+      pageQuestion: Question,
+      pageShowAnswer: boolean,
+      interactive: boolean
+    ) => {
+      const chapterQuestions = allQuestions.filter(
+        (q) => q.chapterId === pageQuestion.chapterId
+      );
+      const originalQuestionIndex = chapterQuestions.findIndex(
+        (q) => q.id === pageQuestion.id
+      );
+      const pageImportanceStars = getQuestionImportanceStars(pageQuestion);
+      const lawClick = interactive ? handleLawClick(pageQuestion) : undefined;
+
+      return (
+        <div className="min-h-[calc(100svh-120px)]">
+          <section
+            className={`relative rounded-[22px] border px-5 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)] ${
+              pageImportanceStars
+                ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
+                : "border-[#e4e8f0] bg-white"
+            }`}
+          >
+            <div className={pageQuestion.memorized ? "opacity-40" : ""}>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[12px] font-bold text-[#8a94a6]">
+                  Q{originalQuestionIndex + 1}.
+                </p>
+              </div>
+
+              <div className="flex min-h-[72px] items-center justify-center py-3">
+                <JustifiedText
+                  html={linkLawText(
+                    normalizeQuestionHtml(pageQuestion.textHtml),
+                    pageQuestion.disabledAutoLinks ?? []
+                  )}
+                  className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
+                    getQuestionImportanceStars(pageQuestion) ? "text-[#d95c5c]" : "text-[#111827]"
+                  }`}
+                  onClick={lawClick}
                 />
-                </svg>
-            </button>
-            </div>
-        </section>
-  
-        {showAnswer && (
-          <section className={`px-5 pb-2 pt-5 ${question.memorized ? "opacity-40" : ""}`}>
-            <div className="flex items-center justify-between">
-              <p className="text-[13px] font-bold text-[#8a94a6]">정답</p>
-  
-              <div
-                className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
-                  question.answer === "O"
-                    ? "bg-[#edf7f0] text-[#4d8b63]"
-                    : "bg-[#fff0f0] text-[#d95c5c]"
-                }`}
-              >
-                {question.answer}
               </div>
             </div>
-  
-            <div className="mt-5 h-px bg-[#e5e7eb]" />
-  
-            <div className="mt-5">
-              <p className="mb-3 text-[13px] font-bold text-[#8a94a6]">해설</p>
-  
-              <JustifiedText
-                className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
-                html={linkLawText(question.explanationHtml, question.disabledAutoLinks ?? [])}
-                onClick={handleLawClick}
-              />
-              {(question.extraPoints ?? []).length > 0 && (
-                <div className="mt-6">
+
+            {interactive && (
+              <div className="absolute right-5 top-5 flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleQuestionImportance(pageQuestion.id);
+                  }}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-transform active:scale-90"
+                  aria-label={`중요도 ${pageImportanceStars}단계`}
+                  title="누를 때마다 중요도 1 → 2 → 3 → 해제로 변경"
+                >
+                  <span className="relative flex h-7 w-7 items-center justify-center">
+                    <StarIcon active={Boolean(pageImportanceStars)} size={22} />
+                    {pageImportanceStars ? (
+                      <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
+                        {pageImportanceStars}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateQuestion(pageQuestion.id, { memorized: !pageQuestion.memorized });
+                  }}
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all ${
+                    pageQuestion.memorized
+                      ? "border-[#0f2a5f] bg-[#0f2a5f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
+                      : "border-[#dce2ee] bg-[#f8fafc]"
+                  }`}
+                  aria-label="암기완료"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M5.5 12.5L10 17L18.8 7.5"
+                      stroke={pageQuestion.memorized ? "white" : "#9aa3b2"}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </section>
+
+          {pageShowAnswer && (
+            <section className={`px-5 pb-2 pt-5 ${pageQuestion.memorized ? "opacity-40" : ""}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-[13px] font-bold text-[#8a94a6]">정답</p>
+
+                <div
+                  className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
+                    pageQuestion.answer === "O"
+                      ? "bg-[#edf7f0] text-[#4d8b63]"
+                      : "bg-[#fff0f0] text-[#d95c5c]"
+                  }`}
+                >
+                  {pageQuestion.answer}
+                </div>
+              </div>
+
+              <div className="mt-5 h-px bg-[#e5e7eb]" />
+
+              <div className="mt-5">
+                <p className="mb-3 text-[13px] font-bold text-[#8a94a6]">해설</p>
+
+                <JustifiedText
+                  className="text-[15px] leading-[2.1] tracking-[-0.03em] text-[#303236]"
+                  html={linkLawText(pageQuestion.explanationHtml, pageQuestion.disabledAutoLinks ?? [])}
+                  onClick={lawClick}
+                />
+                {(pageQuestion.extraPoints ?? []).length > 0 && (
+                  <div className="mt-6">
                     <p className="mb-3 pl-[1px] text-[13px] font-bold text-[#8a94a6]">
-                    추가 포인트
+                      추가 포인트
                     </p>
 
                     <div className="space-y-3">
-                    {(question.extraPoints ?? []).map((point, index) => (
+                      {(pageQuestion.extraPoints ?? []).map((point, index) => (
                         <div key={index} className="rounded-2xl bg-[#f5f6fa] px-4 py-3">
-                        <div className="-ml-1 flex items-center gap-2">
-                          {point.category && (
-                            <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
-                              {point.category}
-                            </span>
-                          )}
-                      
-                          {point.title && (
-                            <JustifiedText
-                                className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
-                                html={linkLawText(point.title, question.disabledAutoLinks ?? [])}
-                                onClick={handleLawClick}
-                            />
+                          <div className="-ml-1 flex items-center gap-2">
+                            {point.category && (
+                              <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
+                                {point.category}
+                              </span>
                             )}
+
+                            {point.title && (
+                              <JustifiedText
+                                className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
+                                html={linkLawText(point.title, pageQuestion.disabledAutoLinks ?? [])}
+                                onClick={lawClick}
+                              />
+                            )}
+                          </div>
+
+                          {point.descriptionHtml && (
+                            <JustifiedText
+                              className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
+                              html={linkLawText(point.descriptionHtml, pageQuestion.disabledAutoLinks ?? [])}
+                              onClick={lawClick}
+                            />
+                          )}
                         </div>
-                      
-                        {point.descriptionHtml && (
-                          <JustifiedText
-                            className="mt-3 text-[13px] leading-[1.8] tracking-[-0.03em] text-[#596275]"
-                            html={linkLawText(point.descriptionHtml, question.disabledAutoLinks ?? [])}
-                            onClick={handleLawClick}
-                           />
-                        )}
-                      </div>
-                    ))}
+                      ))}
                     </div>
-                </div>
+                  </div>
                 )}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
+        </div>
+      );
+    };
+
+    const pageSize = (pagerWidth || 0) + 56;
+    const pageTransition = pagerDragging
+      ? "none"
+      : pagerAnimating
+      ? "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)"
+      : "none";
+
+    return (
+      <div
+        ref={pagerRef}
+        className="relative min-h-[calc(100svh-120px)] w-full overflow-x-hidden overscroll-y-contain"
+        style={{
+          touchAction: pagerDragging ? "pan-x" : "pan-y",
+          WebkitOverflowScrolling: "touch",
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+      >
+        {prevQuestion && (
+          <div
+            className="pointer-events-none absolute left-0 top-0 w-full"
+            style={{
+              transform: `translate3d(${pagerOffset - pageSize}px, 0, 0)`,
+              transition: pageTransition,
+              willChange: "transform",
+            }}
+            aria-hidden="true"
+          >
+            {renderQuestionPage(prevQuestion, false, false)}
+          </div>
+        )}
+
+        <div
+          className="relative w-full"
+          style={{
+            transform: `translate3d(${pagerOffset}px, 0, 0)`,
+            transition: pageTransition,
+            willChange: "transform",
+          }}
+        >
+          {renderQuestionPage(question, showAnswer, true)}
+        </div>
+
+        {nextQuestion && (
+          <div
+            className="pointer-events-none absolute left-0 top-0 w-full"
+            style={{
+              transform: `translate3d(${pagerOffset + pageSize}px, 0, 0)`,
+              transition: pageTransition,
+              willChange: "transform",
+            }}
+            aria-hidden="true"
+          >
+            {renderQuestionPage(nextQuestion, false, false)}
+          </div>
         )}
       </div>
     );
