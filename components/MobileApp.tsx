@@ -355,12 +355,21 @@ export default function MobileApp() {
 
   const isHistoryMoving = useRef(false);
   const isFirstHistoryState = useRef(true);
+  const lastHistoryLevel = useRef("");
+
+  const historyLevel =
+    screen === "chapters"
+      ? `${screen}:${subjectId}:${currentParentId ?? "root"}`
+      : screen === "questions" || screen === "detail"
+        ? `${screen}:${chapterId}`
+        : screen;
 
   useEffect(() => {
     const state = {
       screen,
       subjectId,
       chapterId,
+      currentParentId,
       questionId,
       showAnswer,
       search,
@@ -369,25 +378,36 @@ export default function MobileApp() {
 
     if (isHistoryMoving.current) {
       isHistoryMoving.current = false;
+      lastHistoryLevel.current = historyLevel;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       return;
     }
 
     if (isFirstHistoryState.current) {
       window.history.replaceState(state, "", window.location.href);
       isFirstHistoryState.current = false;
+      lastHistoryLevel.current = historyLevel;
       return;
     }
 
-    window.history.pushState(state, "", window.location.href);
+    if (lastHistoryLevel.current === historyLevel) {
+      window.history.replaceState(state, "", window.location.href);
+    } else {
+      window.history.pushState(state, "", window.location.href);
+      lastHistoryLevel.current = historyLevel;
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [
     screen,
     subjectId,
     chapterId,
+    currentParentId,
     questionId,
     showAnswer,
     search,
     expandedIds,
+    historyLevel,
   ]);
 
   useEffect(() => {
@@ -400,6 +420,7 @@ export default function MobileApp() {
       setScreen(state.screen || "subjects");
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
+      setCurrentParentId(state.currentParentId ?? null);
       setQuestionId(state.questionId || "");
       setShowAnswer(state.showAnswer ?? false);
       setSearch(state.search || "");
@@ -431,6 +452,7 @@ export default function MobileApp() {
       setScreen(state.screen || "subjects");
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
+      setCurrentParentId(state.currentParentId ?? null);
       setQuestionId(state.questionId || "");
       setShowAnswer(state.showAnswer ?? false);
       setSearch(state.search || "");
