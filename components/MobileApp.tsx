@@ -55,6 +55,7 @@ const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
 const initialQuestions: Question[] = [];
+const SYSTEM_BACK_GESTURE_EDGE = 36;
 
 type StarIconProps = {
   active?: boolean;
@@ -474,16 +475,21 @@ export default function MobileApp() {
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    const prevHtmlOverscroll = html.style.overscrollBehavior;
-    const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevHtmlOverscrollX = html.style.overscrollBehaviorX;
+    const prevHtmlOverscrollY = html.style.overscrollBehaviorY;
+    const prevBodyOverscrollX = body.style.overscrollBehaviorX;
+    const prevBodyOverscrollY = body.style.overscrollBehaviorY;
     const prevHtmlOverflow = html.style.overflow;
     const prevBodyOverflow = body.style.overflow;
     const prevBodyPosition = body.style.position;
     const prevBodyWidth = body.style.width;
     let lastTouchY = 0;
+    let isSystemBackGesture = false;
 
-    html.style.overscrollBehavior = "none";
-    body.style.overscrollBehavior = "none";
+    html.style.overscrollBehaviorX = "auto";
+    html.style.overscrollBehaviorY = "none";
+    body.style.overscrollBehaviorX = "auto";
+    body.style.overscrollBehaviorY = "none";
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
     body.style.position = "fixed";
@@ -507,10 +513,14 @@ export default function MobileApp() {
     };
 
     const handleTouchStart = (event: TouchEvent) => {
-      lastTouchY = event.touches[0]?.clientY ?? 0;
+      const touch = event.touches[0];
+      lastTouchY = touch?.clientY ?? 0;
+      isSystemBackGesture = (touch?.clientX ?? Infinity) <= SYSTEM_BACK_GESTURE_EDGE;
     };
 
     const handleTouchMove = (event: TouchEvent) => {
+      if (isSystemBackGesture) return;
+
       const currentY = event.touches[0]?.clientY ?? lastTouchY;
       const deltaY = currentY - lastTouchY;
       lastTouchY = currentY;
@@ -538,8 +548,10 @@ export default function MobileApp() {
     return () => {
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchmove", handleTouchMove);
-      html.style.overscrollBehavior = prevHtmlOverscroll;
-      body.style.overscrollBehavior = prevBodyOverscroll;
+      html.style.overscrollBehaviorX = prevHtmlOverscrollX;
+      html.style.overscrollBehaviorY = prevHtmlOverscrollY;
+      body.style.overscrollBehaviorX = prevBodyOverscrollX;
+      body.style.overscrollBehaviorY = prevBodyOverscrollY;
       html.style.overflow = prevHtmlOverflow;
       body.style.overflow = prevBodyOverflow;
       body.style.position = prevBodyPosition;
@@ -997,7 +1009,7 @@ export default function MobileApp() {
           display: none;
         }
       `}</style>
-      <main className="mobile-scrollbar-hide fixed inset-0 overflow-y-auto overscroll-none bg-white text-[#111827] [touch-action:pan-y]">
+      <main className="mobile-scrollbar-hide fixed inset-0 overflow-y-auto overscroll-y-none bg-white text-[#111827] [touch-action:auto]">
         <section className="mx-auto min-h-[100svh] w-full max-w-[430px] bg-white px-5 pb-6 pt-10">
           {isStandalone && (
             <button
@@ -1906,6 +1918,7 @@ function MobileDetail({
     const target = e.target as HTMLElement;
 
     if (
+      e.clientX <= SYSTEM_BACK_GESTURE_EDGE ||
       target.closest("button") ||
       target.closest("input") ||
       target.closest("textarea") ||
@@ -2110,7 +2123,7 @@ function MobileDetail({
     const handleLawClick = createLawClickHandler(displayQuestion);
 
     return (
-      <div className="mobile-scrollbar-hide h-full overflow-y-auto overscroll-none pb-3 [touch-action:pan-y]">
+      <div className="mobile-scrollbar-hide h-full overflow-y-auto overscroll-y-none pb-3 [touch-action:pan-y]">
         <section
           className={`relative rounded-[22px] border px-5 py-5 ${
             currentImportanceStars
@@ -2283,12 +2296,17 @@ function MobileDetail({
 
   return (
     <div
-      className="mobile-scrollbar-hide relative h-[calc(100svh-132px)] overflow-hidden overscroll-none [touch-action:pan-y]"
+      className="mobile-scrollbar-hide relative h-[calc(100svh-132px)] overflow-hidden overscroll-y-none [touch-action:auto]"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
     >
+      <div
+        className="absolute inset-y-0 left-0 z-10 w-9 [touch-action:auto]"
+        aria-hidden="true"
+      />
+
       {previewQuestion && (
         <div
           className={`pointer-events-none absolute inset-0 will-change-transform ${
