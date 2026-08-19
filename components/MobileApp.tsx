@@ -526,6 +526,7 @@ export default function MobileApp() {
 
     const handleTouchMove = (event: TouchEvent) => {
       if (isSystemNavigationGesture) return;
+      if ((event.target as Element | null)?.closest?.("a[href]")) return;
 
       const currentY = event.touches[0]?.clientY ?? lastTouchY;
       const deltaY = currentY - lastTouchY;
@@ -1929,6 +1930,7 @@ function MobileDetail({
       target.closest("input") ||
       target.closest("textarea") ||
       target.closest("select") ||
+      target.closest("a[href]") ||
       target.closest("[data-law-name][data-article-no]")
     ) {
       resetDetailSwipeState();
