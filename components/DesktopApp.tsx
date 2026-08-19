@@ -55,6 +55,11 @@ const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
 const initialQuestions: Question[] = [];
+const SYSTEM_NAVIGATION_GESTURE_EDGE = 36;
+
+const isSystemNavigationEdge = (clientX: number, viewportWidth: number) =>
+  clientX <= SYSTEM_NAVIGATION_GESTURE_EDGE ||
+  clientX >= viewportWidth - SYSTEM_NAVIGATION_GESTURE_EDGE;
 
 type StarIconProps = {
   active?: boolean;
@@ -343,6 +348,14 @@ export default function DesktopApp() {
 
   const isHistoryMoving = useRef(false);
   const isFirstHistoryState = useRef(true);
+  const lastHistoryLevel = useRef("");
+
+  const historyLevel =
+    screen === "chapters"
+      ? `${screen}:${subjectId}:${currentParentId ?? "root"}`
+      : screen === "questions" || screen === "detail"
+        ? `${screen}:${chapterId}`
+        : screen;
 
   useEffect(() => {
     const state = {
@@ -358,18 +371,27 @@ export default function DesktopApp() {
   
     if (isHistoryMoving.current) {
       isHistoryMoving.current = false;
+      lastHistoryLevel.current = historyLevel;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       return;
     }
   
     if (isFirstHistoryState.current) {
       window.history.replaceState(state, "", window.location.href);
       isFirstHistoryState.current = false;
+      lastHistoryLevel.current = historyLevel;
       return;
     }
-  
-    window.history.pushState(state, "", window.location.href);
+
+    if (lastHistoryLevel.current === historyLevel) {
+      window.history.replaceState(state, "", window.location.href);
+    } else {
+      window.history.pushState(state, "", window.location.href);
+      lastHistoryLevel.current = historyLevel;
+    }
+
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId]);
+  }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId, historyLevel]);
   
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -439,6 +461,7 @@ useEffect(() => {
     const previousBodyOverscroll = body.style.overscrollBehaviorY;
     const previousBodyOverflowX = body.style.overflowX;
     let startY = 0;
+    let isSystemNavigationGesture = false;
 
     html.style.overscrollBehaviorY = "none";
     body.style.overscrollBehaviorY = "none";
@@ -461,13 +484,20 @@ useEffect(() => {
 
     const handleTouchStart = (event: TouchEvent) => {
       if (event.touches.length !== 1) return;
-      startY = event.touches[0].clientY;
+      const touch = event.touches[0];
+      startY = touch.clientY;
+      isSystemNavigationGesture = isSystemNavigationEdge(
+        touch.clientX,
+        window.innerWidth,
+      );
     };
 
     const handleTouchMove = (event: TouchEvent) => {
       if (event.touches.length !== 1) return;
+      if (isSystemNavigationGesture) return;
 
       const target = event.target as HTMLElement | null;
+      if (target?.closest("a[href]")) return;
       if (target?.closest("[data-allow-touch-overscroll='true']")) return;
 
       const currentY = event.touches[0].clientY;
@@ -2233,6 +2263,7 @@ function MobileHeader({
 
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
       if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
+      if (isSystemNavigationEdge(e.clientX, window.innerWidth)) return;
       if (isInteractiveTarget(e.target)) return;
       if (pagerAnimating) return;
 
@@ -3106,6 +3137,20 @@ function EditorBox({
       if (!innerRef.current) return;
       innerRef.current.innerHTML = defaultHtml;
     }, [defaultHtml]);
+
+    const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      onClick?.(e);
+      if (e.defaultPrevented) return;
+
+      const anchor = (e.target as HTMLElement).closest(
+        "a[href]"
+      ) as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(anchor.href, "_blank", "noopener,noreferrer");
+    };
   
     const insertSoftBreak = () => {
         const selection = window.getSelection();
@@ -3134,7 +3179,7 @@ function EditorBox({
           if (refObj) refObj.current = el;
           setRef?.(el);
         }}
-        onClick={onClick}
+        onClick={handleEditorClick}
         onKeyDown={(e) => {
           if (e.key === "Enter") {
             e.preventDefault();
