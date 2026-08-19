@@ -2883,6 +2883,20 @@ function EditorBox({
     innerRef.current.innerHTML = defaultHtml;
   }, [defaultHtml]);
 
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    onClick?.(e);
+    if (e.defaultPrevented) return;
+
+    const anchor = (e.target as HTMLElement).closest(
+      "a[href]",
+    ) as HTMLAnchorElement | null;
+    if (!anchor) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(anchor.href, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div
       ref={(el) => {
@@ -2890,7 +2904,7 @@ function EditorBox({
         if (refObj) refObj.current = el;
         setRef?.(el);
       }}
-      onClick={onClick}
+      onClick={handleEditorClick}
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
