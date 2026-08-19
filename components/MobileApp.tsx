@@ -55,7 +55,11 @@ const initialSubjects: Subject[] = [];
 
 const initialChapters: Chapter[] = [];
 const initialQuestions: Question[] = [];
-const SYSTEM_BACK_GESTURE_EDGE = 36;
+const SYSTEM_NAVIGATION_GESTURE_EDGE = 36;
+
+const isSystemNavigationEdge = (clientX: number, viewportWidth: number) =>
+  clientX <= SYSTEM_NAVIGATION_GESTURE_EDGE ||
+  clientX >= viewportWidth - SYSTEM_NAVIGATION_GESTURE_EDGE;
 
 type StarIconProps = {
   active?: boolean;
@@ -484,7 +488,7 @@ export default function MobileApp() {
     const prevBodyPosition = body.style.position;
     const prevBodyWidth = body.style.width;
     let lastTouchY = 0;
-    let isSystemBackGesture = false;
+    let isSystemNavigationGesture = false;
 
     html.style.overscrollBehaviorX = "auto";
     html.style.overscrollBehaviorY = "none";
@@ -515,11 +519,13 @@ export default function MobileApp() {
     const handleTouchStart = (event: TouchEvent) => {
       const touch = event.touches[0];
       lastTouchY = touch?.clientY ?? 0;
-      isSystemBackGesture = (touch?.clientX ?? Infinity) <= SYSTEM_BACK_GESTURE_EDGE;
+      isSystemNavigationGesture = touch
+        ? isSystemNavigationEdge(touch.clientX, window.innerWidth)
+        : false;
     };
 
     const handleTouchMove = (event: TouchEvent) => {
-      if (isSystemBackGesture) return;
+      if (isSystemNavigationGesture) return;
 
       const currentY = event.touches[0]?.clientY ?? lastTouchY;
       const deltaY = currentY - lastTouchY;
@@ -1918,7 +1924,7 @@ function MobileDetail({
     const target = e.target as HTMLElement;
 
     if (
-      e.clientX <= SYSTEM_BACK_GESTURE_EDGE ||
+      isSystemNavigationEdge(e.clientX, window.innerWidth) ||
       target.closest("button") ||
       target.closest("input") ||
       target.closest("textarea") ||
@@ -2304,6 +2310,10 @@ function MobileDetail({
     >
       <div
         className="absolute inset-y-0 left-0 z-10 w-9 [touch-action:auto]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-y-0 right-0 z-10 w-9 [touch-action:auto]"
         aria-hidden="true"
       />
 
