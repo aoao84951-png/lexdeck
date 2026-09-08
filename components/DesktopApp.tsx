@@ -2968,7 +2968,7 @@ const runCommand = (command: string, value?: string) => {
                 key={v}
                 onClick={() => setAnswer(v)}
                 className={`h-11 rounded-full px-5 text-[13px] font-bold ${
-                  answer === v ? "bg-[#48685b] text-white" : "bg-[#e8f0eb] text-[#596275]"
+                  answer === v ? "bg-[#f6e7ad] text-[#594e34]" : "bg-[#f7f5ee] text-[#596275]"
                 }`}
               >
                 {v}
@@ -3001,7 +3001,7 @@ const runCommand = (command: string, value?: string) => {
                 <button
                 type="button"
                 onClick={addExtraPoint}
-                className="rounded-full bg-[#e8f0eb] px-3 py-1.5 text-[11px] font-bold text-[#48685b]"
+                className="rounded-full bg-[#f7f5ee] px-3 py-1.5 text-[11px] font-bold text-[#756442]"
                 >
                 + 추가
                 </button>
@@ -3009,7 +3009,7 @@ const runCommand = (command: string, value?: string) => {
 
             <div className="space-y-3">
                 {extraPoints.map((point, index) => (
-                <div key={index} className="lex-extra-point rounded-2xl border border-[#dde5df] p-4">
+                <div key={index} className="lex-extra-point rounded-2xl border border-[#e5e5e1] p-4">
                     <div className="flex gap-2">
                     <input
                         value={point.category}
@@ -3018,14 +3018,14 @@ const runCommand = (command: string, value?: string) => {
                         }
                         aria-label="추가 포인트 유형"
                       placeholder="유형"
-                        className="h-10 flex-1 rounded-xl border border-[#dde5df] px-3 text-[12px] outline-none"
+                        className="h-10 flex-1 rounded-xl border border-[#e5e5e1] px-3 text-[12px] outline-none"
                     />
 
                     <button
                         type="button"
                         aria-label="추가 포인트 삭제"
                       onClick={() => removeExtraPoint(index)}
-                        className="ml-auto h-10 w-10 rounded-xl border border-[#dde5df] text-[14px] text-[#8a94a6]"
+                        className="ml-auto h-10 w-10 rounded-xl border border-[#e5e5e1] text-[14px] text-[#8a94a6]"
                     >
                         ×
                     </button>
@@ -3036,7 +3036,7 @@ const runCommand = (command: string, value?: string) => {
                     onChange={(e) => updateExtraPoint(index, "title", e.target.value)}
                     aria-label="추가 포인트 제목"
                     placeholder="제목"
-                    className="mt-3 h-11 w-full rounded-xl border border-[#dde5df] px-3 text-[13px] outline-none"
+                    className="mt-3 h-11 w-full rounded-xl border border-[#e5e5e1] px-3 text-[13px] outline-none"
                     />
 
                     <div className="mt-2">
@@ -3069,7 +3069,7 @@ const runCommand = (command: string, value?: string) => {
         <footer className="lex-editor-footer">
           <button
             onClick={onClose}
-            className="h-11 rounded-full bg-[#e8f0eb] px-5 text-[13px] font-bold text-[#596275]"
+            className="h-11 rounded-full bg-[#f7f5ee] px-5 text-[13px] font-bold text-[#596275]"
           >
             취소
           </button>
@@ -3094,7 +3094,7 @@ const runCommand = (command: string, value?: string) => {
                     disabledAutoLinks,
                 })
             }
-            className="h-11 rounded-full bg-[#48685b] px-5 text-[13px] font-bold text-white"
+            className="h-11 rounded-full bg-[#f6e7ad] px-5 text-[13px] font-bold text-[#594e34]"
             >
             저장
             </button>
