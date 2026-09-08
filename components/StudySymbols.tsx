@@ -1,0 +1,14 @@
+import type {CSSProperties} from 'react';
+type Props={size?:number|string;className?:string;style?:CSSProperties;strokeWidth?:number|string;'aria-hidden'?:boolean|'true'|'false'};
+const glyph=(text:string)=>function Symbol({size=20,className='',style}:Props){return <span aria-hidden="true" className={`study-symbol study-ui-symbol ${className}`} style={{fontSize:size,...style}}>{text}</span>;};
+export const Star=glyph('☆');
+export const ChevronLeft=glyph('←');
+export const ChevronRight=glyph('→');
+export const ArrowUpRight=glyph('↗');
+export const CornerUpRight=glyph('↗');
+export const ArrowUp=glyph('↑');
+export const ArrowDown=glyph('↓');
+export const Plus=glyph('+');
+export const X=glyph('×');
+export const RotateCw=glyph('↔');
+export const MoreHorizontal=glyph('…');

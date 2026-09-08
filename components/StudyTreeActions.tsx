@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
-import {FolderPlus,Pencil,CornerUpRight,Trash2,X,ArrowUp,ArrowDown} from "lucide-react";
+import { FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { CornerUpRight, X, ArrowUp, ArrowDown } from "./StudySymbols";
 import {FolderSymbolPicker} from "./FolderSymbols";
 import {chapterPath,type StudyChapter,type StudySubject} from "./studyTypes";
 export type TreeAction={kind:'add'|'edit'|'move'|'delete'|'up'|'down';id:string;subject:boolean;title?:string;icon?:string;desc?:string;targetSubjectId?:string;type?:'folder'|'chapter';parentId?:string|null};

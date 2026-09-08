@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
-import {ArrowUpRight, ChevronLeft, ChevronRight, Star, BookOpen} from "lucide-react";
+import { BookOpen } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Star } from "./StudySymbols";
 import {StudySettings} from "./StudyHeader";
 import {chapterPath, importance, studyText, type StudySubject, type StudyChapter, type StudyQuestion} from "./studyTypes";
 export default function StudyHome({subjects,chapters,questions,onOpen,onContents}:{subjects:StudySubject[];chapters:StudyChapter[];questions:StudyQuestion[];onOpen:(id:string)=>void;onSubject:(id:string)=>void;onContents:()=>void}){
@@ -8,7 +9,7 @@ export default function StudyHome({subjects,chapters,questions,onOpen,onContents
  useEffect(()=>{const read=()=>{try{setLast(localStorage.getItem('lexdeck-last-question')||'');}catch{}};read();},[]);
  const sorted=[...questions].sort((a,b)=>Number(a.memorized)-Number(b.memorized)||importance(b)-importance(a));
  const current=sorted[index%Math.max(1,sorted.length)];const resume=questions.find(q=>q.id===last);
- const location=(q:StudyQuestion)=>[subjects.find(s=>s.id===q.subjectId)?.name,chapterPath(q.chapterId,chapters)].filter(Boolean).join(' › ');
+ const location=(q:StudyQuestion)=>[subjects.find(s=>s.id===q.subjectId)?.name,chapterPath(q.chapterId,chapters)].filter(Boolean).join(' → ');
  const move=(by:number)=>{setIndex(value=>(value+by+sorted.length)%sorted.length);setRevealed(false);};
  return <div className="study-home"><header className="study-home-header"><div><p>LEXDECK · 정은이의 스터디룸</p><h1>오늘의 공부</h1></div><StudySettings/></header>
  {resume&&<button className="study-resume" onClick={()=>onOpen(resume.id)}><span><small>이어서 공부하기</small><strong>{studyText(resume.textHtml)}</strong><span>{location(resume)}</span></span><ArrowUpRight size={20}/></button>}

@@ -7,5 +7,5 @@ export function chapterPath(id: string, chapters: StudyChapter[]) {
   const result: string[] = [], visited = new Set<string>();
   let chapter = chapters.find(item => item.id === id);
   while (chapter && !visited.has(chapter.id)) { visited.add(chapter.id); result.unshift(chapter.title); chapter = chapters.find(item => item.id === chapter?.parentId); }
-  return result.join(" › ");
+  return result.join(" → ");
 }

@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { Bold, Underline, Italic, Strikethrough, Palette, Link, X, Unlink, Scale, Plus, RemoveFormatting } from "lucide-react";
+import { Bold, Underline, Italic, Strikethrough, Palette, Link, Unlink, Scale, RemoveFormatting } from "lucide-react";
+import { X, Plus } from "./StudySymbols";
 
 import { readEditorSelection, restoreEditorSelection, selectedEditorColors, paletteColorMatches, type EditorSelection } from "./editorSelection";
 

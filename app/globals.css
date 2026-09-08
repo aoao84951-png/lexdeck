@@ -275,12 +275,8 @@ select { font-family: inherit; }
  .study-field-label input, .study-field-label select { font-size: 16px; }
 }
 
-.lex-app[data-study-screen="detail"] .study-detail-viewport { height: calc(100dvh - 270px - env(safe-area-inset-bottom)); min-height: 260px; }
+.lex-app[data-study-screen="detail"] .study-detail-viewport { height: calc(100dvh - 210px - env(safe-area-inset-bottom)); min-height: 260px; }
 
-.study-reading-controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 17px; }
-.study-reading-controls button { min-height: 36px; padding: 8px 12px; color: #a09b8b; font-size: 11px; border-radius: 20px; }
-.study-reading-controls button:nth-child(2) { background: #faf4df; color: #978047; padding: 9px 18px; }
-.study-reading-controls button:disabled { opacity: .3; }
 
 /* Same symbols-only face as vocab-flow: normal letters keep the selected reading font. */
 @font-face {
@@ -339,3 +335,10 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-inline-destination { width: 100%; }
 .study-inline-actions .study-inline-order { display: flex; gap: 4px; margin-right: auto; }
 .study-inline-actions .study-inline-order button { background: transparent; }
+
+.study-ui-symbol { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; vertical-align: middle; }
+.study-explanation { color: #48463f; }
+.study-explanation a, .study-explanation .law-auto-link { color: #88703d; text-decoration-color: #c4b27e; }
+.study-explanation p.text-\[\#8a94a6\] { color: #978b70; }
+.study-explanation .bg-\[\#e5e7eb\] { background: #eee9db; }
+.study-explanation .text-\[\#596275\] { color: #686354; }

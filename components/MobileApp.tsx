@@ -77,28 +77,7 @@ type StarIconProps = {
 };
 
 function StarIcon({ active = true, size = 15 }: StarIconProps) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`shrink-0 transition-all ${
-        active
-          ? "text-[#c5a24e] drop-shadow-[0_2px_5px_rgba(239,68,68,0.18)]"
-          : "text-[#c7ceda]"
-      }`}
-    >
-      <path
-        d="M12 3.15 14.67 8.84 20.9 9.6 16.32 13.9 17.52 20.08 12 17.02 6.48 20.08 7.68 13.9 3.1 9.6 9.33 8.84 12 3.15Z"
-        fill={active ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.85"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+  return <span aria-hidden="true" className="study-symbol study-ui-symbol" style={{fontSize:size,opacity:active?1:.45}}>☆</span>;
 }
 
 type ImportanceStarsProps = {
@@ -209,7 +188,7 @@ const makeLawLinksBreakable = (html: string) => {
       el.style.wordBreak = "break-all";
       el.style.overflowWrap = "anywhere";
 
-      el.style.color = "#0f2a5f";
+      el.style.color = "#88703d";
       el.style.fontWeight = "800";
       el.style.textDecoration = "underline";
       el.style.textUnderlineOffset = "3px";
@@ -1158,7 +1137,7 @@ export default function MobileApp() {
                       </div>
 
                       <span className="text-[19px] font-light text-[#9aa3b2]">
-                        ›
+                        →
                       </span>
                     </button>
                   );
@@ -1304,11 +1283,7 @@ export default function MobileApp() {
 
           {screen === "detail" && (
             <div className="mt-3">
-              <div className="study-reading-controls">
-                <button type="button" aria-label="이전 문제" disabled={visibleQuestions.findIndex(q => q.id === questionId) <= 0} onClick={() => { const i = visibleQuestions.findIndex(q => q.id === questionId); if (i > 0) selectQuestion(visibleQuestions[i - 1].id); }}>‹ 이전</button>
-                <button type="button" aria-expanded={showAnswer} onClick={() => setShowAnswer(!showAnswer)}>{showAnswer ? "정답·해설 숨기기" : "정답·해설 보기"}</button>
-                <button type="button" aria-label="다음 문제" disabled={visibleQuestions.findIndex(q => q.id === questionId) >= visibleQuestions.length - 1} onClick={() => { const i = visibleQuestions.findIndex(q => q.id === questionId); if (i >= 0 && i < visibleQuestions.length - 1) selectQuestion(visibleQuestions[i + 1].id); }}>다음 ›</button>
-              </div>
+
               <MobileDetail
                 question={selectedQuestion}
                 questions={visibleQuestions}
@@ -2028,22 +2003,14 @@ function MobileDetail({
               }`}
               aria-label="암기완료"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M5.5 12.5L10 17L18.8 7.5"
-                  stroke={displayQuestion.memorized ? "white" : "#9aa3b2"}
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <span aria-hidden="true" className="study-symbol" style={{color:displayQuestion.memorized?"white":"#978b70"}}>√</span>
             </button>
           </div>
         </section>
 
         {showAnswer && (
           <section
-            className={`px-5 pb-2 pt-5 ${displayQuestion.memorized ? "opacity-40" : ""}`}
+            className={`study-explanation px-5 pb-2 pt-5 ${displayQuestion.memorized ? "opacity-40" : ""}`}
           >
             <div className="flex items-center justify-between">
               <p className="text-[13px] font-bold text-[#8a94a6]">정답</p>
@@ -2051,8 +2018,8 @@ function MobileDetail({
               <div
                 className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
                   displayQuestion.answer === "O"
-                    ? "bg-[#edf7f0] text-[#4d8b63]"
-                    : "bg-[#fff0f0] text-[#303236]"
+                    ? "bg-[#faf0c9] text-[#796532]"
+                    : "bg-[#f3e9dd] text-[#80664b]"
                 }`}
               >
                 {displayQuestion.answer}
@@ -2082,7 +2049,7 @@ function MobileDetail({
                     {(displayQuestion.extraPoints ?? []).map((point, index) => (
                       <div
                         key={index}
-                        className="rounded-2xl bg-[#f5f6fa] px-4 py-3"
+                        className="rounded-2xl bg-[#faf8f0] px-4 py-3"
                       >
                         <div className="-ml-1 flex items-center gap-2">
                           {point.category && (
@@ -2748,39 +2715,8 @@ function Empty({ text }: { text: string }) {
   );
 }
 
-function ChevronLeft() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M15 6L9 12L15 18"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronToggle({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      className={`transition-transform ${open ? "rotate-180" : ""}`}
-    >
-      <path
-        d="M6 9L12 15L18 9"
-        stroke="currentColor"
-        strokeWidth="2.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+function ChevronLeft() { return <span className="study-symbol study-ui-symbol" aria-hidden="true">←</span>; }
+function ChevronToggle({open}:{open:boolean}) {return <span className="study-symbol study-ui-symbol" aria-hidden="true">{open?'△':'▽'}</span>;}
 
 function SubjectActionSheet({
   subject,
@@ -3051,24 +2987,7 @@ function MoveChapterSheet({
   );
 }
 
-function DeleteXIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-      <path
-        d="M7.2 7.2L16.8 16.8"
-        stroke="currentColor"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
-      <path
-        d="M16.8 7.2L7.2 16.8"
-        stroke="currentColor"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+function DeleteXIcon() {return <span aria-hidden="true" className="study-symbol study-ui-symbol">×</span>;}
 
 function ListAddIcon({
   size = 26,

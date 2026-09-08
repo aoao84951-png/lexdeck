@@ -1,5 +1,7 @@
 "use client";
-import { ChevronLeft, MoreHorizontal, Pencil, Trash2, Settings2, RotateCw } from "lucide-react";
+import { Pencil, Trash2, Settings2 } from "lucide-react";
+import { ChevronLeft, RotateCw } from "./StudySymbols";
+import {MoreHorizontal} from "./StudySymbols";
 import {useEffect, useRef, useState} from "react";
 import {FontToggle} from "./FontPreference";
 
