@@ -347,3 +347,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .lex-app[data-study-screen="detail"] .study-detail-viewport { height: auto; min-height: calc(100dvh - 190px); overflow: clip; touch-action: pan-y; }
 .study-settings-panel { width: 260px; max-width: calc(100vw - 40px); max-height: calc(100dvh - 150px); overflow-y: auto; }
 .study-settings-panel hr { border: 0; border-top: 1px solid #eee9db; margin: 8px 0; }
+
+/* Equal icon slots keep labels aligned across font glyphs and SVG icons. */
+.study-settings-panel > button > :first-child { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex: 0 0 18px; }
+.study-chapter-toggle { border: 0; border-radius: 0; box-shadow: none; }

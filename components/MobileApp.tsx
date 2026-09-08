@@ -1542,7 +1542,7 @@ function ChapterTree({
                     e.stopPropagation();
                     onToggle(c.id);
                   }}
-                  className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#8a7544] text-white active:scale-95"
+                  className="study-chapter-toggle ml-2 flex h-7 w-7 shrink-0 items-center justify-center bg-transparent text-[#92959c] active:scale-95"
                   aria-label={open ? "접기" : "펼치기"}
                 >
                   <ChevronToggle open={open} />
@@ -1926,7 +1926,7 @@ function MobileDetail({
               }`}
               aria-label="암기완료"
             >
-              <span aria-hidden="true" className="study-symbol" style={{color:displayQuestion.memorized?"white":"#978b70"}}>√</span>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5.5 12.5L10 17L18.8 7.5" stroke={displayQuestion.memorized ? "white" : "#9aa3b2"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           </div>
         </section>

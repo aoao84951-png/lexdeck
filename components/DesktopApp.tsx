@@ -1630,9 +1630,9 @@ function NavigationDrawer({
                 style={{ paddingLeft: 12 + depth * 18 }}
               >
                 <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center ${
                     hasChildren
-                      ? "bg-[#eef3fb] text-[#4b6cb7]"
+                      ? "bg-transparent text-[#92959c]"
                       : "bg-transparent text-[#b3bccb]"
                   }`}
                 >
@@ -1759,7 +1759,7 @@ function NavigationDrawer({
                       e.stopPropagation();
                       onToggle(c.id);
                     }}
-                    className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#8a7544] text-white active:scale-95"
+                    className="study-chapter-toggle ml-2 flex h-7 w-7 shrink-0 items-center justify-center bg-transparent text-[#92959c] active:scale-95"
                     aria-label={open ? "접기" : "펼치기"}
                   >
                     <ChevronToggle open={open} />
@@ -1925,7 +1925,7 @@ function NavigationDrawer({
 
     useEffect(() => {
       const isEditableTarget = (target: EventTarget | null) => {
-        if (!(target instanceof HTMLElement)) return false;
+        if (!(target instanceof Element)) return false;
 
         return Boolean(
           target.closest(
@@ -2001,7 +2001,7 @@ function NavigationDrawer({
     };
 
     const isInteractiveTarget = (target: EventTarget | null) => {
-      if (!(target instanceof HTMLElement)) return false;
+      if (!(target instanceof Element)) return false;
       return Boolean(target.closest("button, a, input, textarea, select, [contenteditable='true'], [data-law-name][data-article-no]"));
     };
 
@@ -2223,7 +2223,7 @@ function NavigationDrawer({
                   }`}
                   aria-label="암기완료"
                 >
-                  <span aria-hidden="true" className="study-symbol" style={{color:pageQuestion.memorized?"white":"#978b70"}}>√</span>
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5.5 12.5L10 17L18.8 7.5" stroke={pageQuestion.memorized ? "white" : "#9aa3b2"} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </button>
               </div>
             )}
