@@ -66,7 +66,7 @@ a {
 @font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-700.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }
-html[data-lex-font="summer"] body { font-family: "Lex Summer", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+html[data-lex-font="summer"] body { font-family: "Summer Symbols", "Lex Summer", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
 select { font-family: inherit; }
 .lex-editor-overlay { display: flex; align-items: center; justify-content: center; padding: 24px; background: #30323840; backdrop-filter: blur(5px); }
 .lex-editor-dialog { display: flex; flex-direction: column; width: 100%; max-width: 760px; max-height: calc(100dvh - 48px); overflow: hidden; border: 1px solid #fff9; border-radius: 28px; background: #fff; color: #303236; box-shadow: 0 24px 100px #30323820; }
@@ -85,7 +85,7 @@ select { font-family: inherit; }
 .lex-editor-footer button { min-width: 88px; }
 .lex-extra-point { background: white; }
 .lex-editor-dialog input:focus { outline: 2px solid #e6d7a0; outline-offset: 1px; }
-.lex-tools { color: #626873; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; -webkit-user-select: none; user-select: none; }
+.lex-tools { color: #626873; font-family: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; -webkit-user-select: none; user-select: none; }
 .lex-tools-floating { overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e5eb; border-radius: 20px; background: #fff; box-shadow: 0 8px 32px #303a4b14; }
 .lex-tools-row { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); align-items: center; padding: 6px; }
 .lex-tools-row button { display: grid; place-items: center; min-width: 0; height: 38px; border-radius: 12px; }
@@ -281,3 +281,34 @@ select { font-family: inherit; }
 .study-reading-controls button { min-height: 36px; padding: 8px 12px; color: #a09b8b; font-size: 11px; border-radius: 20px; }
 .study-reading-controls button:nth-child(2) { background: #faf4df; color: #978047; padding: 9px 18px; }
 .study-reading-controls button:disabled { opacity: .3; }
+
+/* Same symbols-only face as vocab-flow: normal letters keep the selected reading font. */
+@font-face {
+ font-family: "Summer Symbols";
+ src: url("/fonts/aa-summer-symbols-v2.woff2") format("woff2");
+ font-weight: 100 900; font-style: normal; font-display: swap;
+ unicode-range: U+0021-002F, U+003A-0040, U+005B-0060, U+007B-007E, U+2000-2BFF, U+E000-F8FF;
+}
+@theme inline { --font-sans: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif; }
+body { font-family: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif; }
+html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer", sans-serif; }
+.study-symbol { font-family: "Summer Symbols", "Lex Summer", sans-serif; font-weight: 400; line-height: 1; }
+.study-bottom-nav > button { flex-direction: row; gap: 0; height: 48px; }
+.study-bottom-nav > button > .study-symbol { font-size: 27px; }
+.study-bottom-nav > .study-nav-add > .study-symbol { position: static; width: auto; height: auto; overflow: visible; font-size: 32px; }
+.study-settings { z-index: 48; }
+.study-settings > button[aria-expanded="true"] { background: #faf4df; color: #303236; }
+.study-settings-panel { width: 224px; min-width: 0; top: 48px; padding: 8px; border-color: #eee7d5; box-shadow: 0 8px 32px #79683f1f; }
+.study-settings-panel > button { min-height: 48px; height: auto; padding: 8px 12px; gap: 12px; border-radius: 12px; font-size: 14px; color: #4b5058; }
+.study-settings-panel > button:hover { background: #fffaf0; }
+.study-settings-panel > button > svg { flex-shrink: 0; }
+.study-font-badge { margin-left: auto; border-radius: 999px; padding: 4px 10px; background: #faf2d9; font-size: 12px; white-space: nowrap; }
+.study-tree-row > button.study-tree-chevron { font-size: 14px; }
+.study-tree-name .study-symbol { width: 20px; flex-shrink: 0; font-size: 21px; overflow: visible; }
+.study-tree-name small { margin-left: 0; font-size: 12px; }
+.study-tree-subject { margin-bottom: 0; }
+.study-tree-children { padding-left: 19px; }
+.study-tree-row { min-height: 44px; }
+.study-tree-name { font-size: 14px; }
+.study-bottom-panel { padding: 20px 20px 16px; }
+@media(max-width:639px) { .study-bottom-panel { bottom: calc(98px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 140px - env(safe-area-inset-bottom) - env(safe-area-inset-top)); } }

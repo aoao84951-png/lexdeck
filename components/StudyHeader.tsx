@@ -1,13 +1,14 @@
 "use client";
 import { ChevronLeft, MoreHorizontal, Pencil, Trash2, Settings2, RotateCw } from "lucide-react";
 import {useEffect, useRef, useState} from "react";
-import {FontSwitcher} from "./FontPreference";
+import {FontToggle} from "./FontPreference";
 
 type Props = {eyebrow: string; title: string; showBack: boolean; onBack: () => void; onAdd: () => void; addLabel: string; onDelete?: () => void; onHome?: () => void; onAddFolder?: () => void; chapterMode?: boolean; screenTitleFix?: boolean; sortOrder?: "latest" | "oldest"; onSortChange?: (value:"latest"|"oldest")=>void;};
 export function StudySettings() {
- const [open,setOpen]=useState(false);const root=useRef<HTMLDivElement>(null);
+ const [open,setOpen]=useState(false);const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null);
  useEffect(()=>{const close=(e:PointerEvent)=>{if(e.target instanceof Node&&!root.current?.contains(e.target))setOpen(false);};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close);},[]);
- return <div ref={root} className="study-settings"><button type="button" aria-label="화면 설정" aria-expanded={open} onClick={()=>setOpen(!open)}><Settings2 size={20}/></button>{open&&<div className="study-settings-panel"><FontSwitcher/><button type="button" onClick={()=>window.location.reload()}><RotateCw size={16}/>새로고침</button></div>}</div>;
+ useEffect(()=>{if(!open)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setOpen(false);trigger.current?.focus();}};document.addEventListener('keydown',key);return()=>document.removeEventListener('keydown',key);},[open]);
+ return <div ref={root} className="study-settings" onClick={e=>e.stopPropagation()} onPointerDown={e=>e.stopPropagation()}><button ref={trigger} type="button" aria-label="화면 설정" aria-expanded={open} onClick={()=>setOpen(!open)}><Settings2 size={20} strokeWidth={1.7}/></button>{open&&<div className="study-settings-panel"><FontToggle/><button type="button" onClick={()=>window.location.reload()}><RotateCw size={16} strokeWidth={1.6}/><span>새로고침</span></button></div>}</div>;
 }
 export default function StudyHeader({eyebrow,title,showBack,onBack,onAdd,addLabel,onDelete,sortOrder,onSortChange}:Props) {
  const [open,setOpen]=useState(false);const root=useRef<HTMLElement>(null);

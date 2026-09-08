@@ -27,3 +27,13 @@ export function FontSwitcher() {
     window.dispatchEvent(new Event(EVENT));
   }}><option value="default">기본 글꼴</option><option value="summer">Aa여름소리</option></select></label>;
 }
+
+export function FontToggle() {
+  const font = useSyncExternalStore(subscribe, read, () => "default");
+  return <button type="button" aria-label={`글꼴 변경 (현재: ${font === "summer" ? "여름소리" : "기본"})`} onClick={() => {
+    preference = font === "summer" ? "default" : "summer";
+    try { localStorage.setItem(KEY, preference); } catch {}
+    document.documentElement.dataset.lexFont = preference;
+    window.dispatchEvent(new Event(EVENT));
+  }}><Type size={16} strokeWidth={1.6} aria-hidden="true"/><span>글꼴</span><span className="study-font-badge" aria-live="polite">{font === "summer" ? "여름소리" : "기본"}</span></button>;
+}
