@@ -405,7 +405,7 @@ export default function DesktopApp() {
 
       isHistoryMoving.current = true;
 
-      setScreen(state.screen || "subjects");
+      setScreen(!state.screen || state.screen === "subjects" ? "home" : state.screen);
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
       setQuestionId(state.questionId || "");
@@ -438,7 +438,7 @@ export default function DesktopApp() {
     try {
       const state = JSON.parse(saved);
 
-      setScreen(state.screen || "subjects");
+      setScreen(!state.screen || state.screen === "subjects" ? "home" : state.screen);
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
       setQuestionId(state.questionId || "");
@@ -835,7 +835,7 @@ useEffect(() => {
         if (nextChapter) setChapterId(nextChapter.id);
       }
 
-      setScreen("subjects");
+      setScreen("home");
     }
 
     setActionSubjectId(null);
@@ -969,7 +969,7 @@ useEffect(() => {
         return;
       }
 
-      setScreen("subjects");
+      setScreen("home");
       return;
     }
 
@@ -1409,6 +1409,28 @@ useEffect(() => {
         onAddQuestion={id => { const target = chapters.find(c => c.id === id); if (!target) return; setSubjectId(target.subjectId); setChapterId(id); setCurrentParentId(target.parentId); setSearch(""); setScreen("questions"); setEditingId(null); setFormOpen(true); }}
         onAddFolder={(sid, parent) => { setSubjectId(sid); setFolderParentId(parent); setFolderFormOpen(true); }}
         onAddChapter={(sid, parent, title) => { const id = uid(); setChapters(prev => [...prev, { id, subjectId: sid, parentId: parent, title, type: "chapter" }]); setSubjectId(sid); setChapterId(id); setCurrentParentId(parent); setSearch(""); setScreen("questions"); }}
+        onTreeAction={action => {
+          const target = chapters.find(c => c.id === action.id);
+          const sid = action.subject ? action.id : target?.subjectId;
+          if (!sid) return;
+          if (action.kind === "up" || action.kind === "down") {
+            const direction = action.kind === "up" ? -1 : 1;
+            if (action.subject) moveSubjectOrder(action.id, direction); else moveChapterOrder(action.id, direction);
+          } else if (action.kind === "add") {
+            const id = uid(); setChapters(prev => [...prev, {id, subjectId:sid, parentId:action.subject?null:action.id, title:action.title!, type:action.type, color:action.color}]);
+          } else if (action.kind === "edit") {
+            if (action.subject) setSubjects(prev => prev.map(s => s.id===action.id?{...s,name:action.title!,color:action.color!}:s));
+            else setChapters(prev => prev.map(c => c.id===action.id?{...c,title:action.title!,color:action.color}:c));
+          } else if (action.kind === "move") {
+            moveChapter(action.id, action.parentId ?? null);
+          } else if (action.kind === "delete") {
+            const ids = action.subject ? chapters.filter(c=>c.subjectId===sid).map(c=>c.id) : [action.id,...getDescendantChapterIds(action.id)];
+            if (action.subject) setSubjects(prev=>prev.filter(s=>s.id!==action.id));
+            setChapters(prev=>prev.filter(c=>!ids.includes(c.id)));
+            setQuestions(prev=>prev.filter(q=>action.subject?q.subjectId!==sid:!ids.includes(q.chapterId)));
+            if (subjectId===sid && (action.subject||ids.includes(chapterId)||ids.includes(currentParentId||""))) goHome();
+          }
+        }}
         onManageSubject={setActionSubjectId}
         onManageChapter={id => { const target = chapters.find(c => c.id === id); if (target) setSubjectId(target.subjectId); setActionChapterId(id); }}
       />

@@ -312,3 +312,20 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-tree-name { font-size: 14px; }
 .study-bottom-panel { padding: 20px 20px 16px; }
 @media(max-width:639px) { .study-bottom-panel { bottom: calc(98px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 140px - env(safe-area-inset-bottom) - env(safe-area-inset-top)); } }
+
+.study-tree-spacer { width: 34px; flex-shrink: 0; }
+.study-inline-actions { margin: 0 0 8px; padding: 6px; border: 1px solid #eee9db; border-radius: 12px; background: #faf8f1; font-size: 12px; }
+.study-inline-tools, .study-inline-tools > div { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.study-inline-tools > div { flex: 1; overflow-x: auto; }
+.study-inline-tools button { display: flex; align-items: center; justify-content: center; gap: 4px; min-height: 30px; padding: 4px; border-radius: 7px; white-space: nowrap; flex-shrink: 0; }
+.study-inline-tools button[aria-pressed="true"] { background: #f5eac7; }
+.study-inline-actions form, .study-inline-actions p, .study-inline-actions select { margin-top: 6px; }
+.study-inline-fields { display: flex; gap: 6px; }
+.study-inline-actions input, .study-inline-actions select { border: 1px solid #e8e1ce; background: white; border-radius: 7px; min-width: 0; padding: 5px 7px; font-size: 14px; }
+.study-inline-fields input:not([type="color"]) { width: 100%; flex: 1; }
+.study-inline-fields input[type="color"] { width: 32px; height: 32px; padding: 2px; flex-shrink: 0; }
+.study-inline-actions select { max-width: 100%; }
+.study-inline-actions footer { display: flex; justify-content: flex-end; margin-top: 6px; }
+.study-inline-actions footer button { padding: 6px 12px; border-radius: 8px; background: #f5eac7; }
+.study-inline-actions footer button:disabled { opacity: .4; }
+.study-inline-actions footer .study-inline-delete { background: #fbeeee; color: #b36565; }
