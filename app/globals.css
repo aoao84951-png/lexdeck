@@ -61,3 +61,72 @@ a {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* The optional reading font also applies to saved questions. */
+@font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Lex Summer"; src: url("/fonts/aa-summer-melody-700.woff2") format("woff2"); font-weight: 700 900; font-display: swap; }
+html[data-lex-font="summer"] body { font-family: "Lex Summer", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+select { font-family: inherit; }
+.lex-editor-overlay { display: flex; align-items: center; justify-content: center; padding: 24px; background: #23382d55; backdrop-filter: blur(5px); }
+.lex-editor-dialog { display: flex; flex-direction: column; width: 100%; max-width: 760px; max-height: calc(100dvh - 48px); overflow: hidden; border: 1px solid #fff9; border-radius: 28px; background: #fafbf8; color: #303632; box-shadow: 0 24px 100px #1e392c26; }
+.lex-editor-header { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 24px 30px 20px; background: white; border-bottom: 1px solid #e7ece6; }
+.lex-editor-eyebrow { margin: 0 0 6px; font-size: 10px; font-weight: 600; letter-spacing: .16em; color: #7b9182; }
+.lex-editor-close { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; font-size: 23px; color: #7c8b80; }
+.lex-editor-close:hover { background: #eef3ee; }
+.lex-font-switch { display: flex; align-items: center; gap: 6px; color: #657d6e; padding: 8px 10px; border-radius: 12px; background: #f1f5f0; }
+.lex-font-switch select { max-width: 114px; font-size: 12px; outline-offset: 3px; background: transparent; }
+.lex-editor-body { overflow-y: auto; overscroll-behavior: contain; padding: 22px 30px 30px; }
+.lex-editor-intro { margin: 0 0 26px; font-size: 12px; line-height: 1.7; color: #839084; }
+.lex-editor-field { border: 1px solid #dde5df; border-top: 0; border-radius: 0 0 16px 16px; padding: 18px 20px; min-height: 142px; font-size: 15px; line-height: 1.95; overflow-wrap: anywhere; }
+.lex-editor-field:focus { border-color: #9bb3a2; box-shadow: 0 3px 0 #dce8de80; }
+.lex-editor-field b, .lex-editor-field strong { font-weight: 700; }
+.lex-editor-footer { flex-shrink: 0; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e7ece6; background: white; padding: 16px 30px; }
+.lex-editor-footer button { min-width: 88px; }
+.lex-extra-point { background: white; }
+.lex-editor-dialog input:focus { outline: 2px solid #b0c5b5; outline-offset: 1px; }
+.lex-toolbar-host { min-height: 48px; border: 1px solid #dde5df; border-bottom: 1px solid #eef1ec; border-radius: 16px 16px 0 0; background: #fff; }
+.lex-tools { color: #596b5f; font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+.lex-tools-floating { overflow-y: auto; overscroll-behavior: contain; border: 1px solid #dce5df; border-radius: 18px; background: #fff; box-shadow: 0 8px 36px #294a3526; }
+.lex-tools-row { display: flex; align-items: center; gap: 3px; padding: 5px 8px; }
+.lex-tools-row button { display: grid; place-items: center; width: 38px; height: 36px; flex-shrink: 0; border-radius: 10px; }
+.lex-tools-row button:hover, .lex-tools-row button[aria-pressed="true"], .lex-tools-row button[aria-expanded="true"] { background: #e8f0eb; color: #345340; }
+.lex-tools button:focus-visible, .lex-editor-dialog button:focus-visible { outline: 2px solid #64846f; outline-offset: 2px; }
+.lex-tools-divider { height: 18px; width: 1px; background: #e6ece5; margin: 0 3px; }
+.lex-selection-hint { display: block; padding: 15px; font-size: 11px; color: #899b8c; }
+.lex-tools-panel { border-top: 1px solid #edf1eb; padding: 12px; }
+.lex-segments { display: flex; padding: 3px; border-radius: 10px; background: #f1f5f0; margin-bottom: 12px; }
+.lex-segments button { display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-height: 34px; font-size: 12px; border-radius: 8px; }
+.lex-segments button[aria-pressed="true"] { background: white; color: #385c44; box-shadow: 0 1px 4px #284c3210; }
+.lex-color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 10px 0; }
+.lex-color-grid > button, .lex-custom-color > button:first-child { width: 100%; height: 36px; border: 1px solid #e3e9e1; border-radius: 8px; font-size: 18px; font-weight: 600; }
+.lex-color-grid button:hover { outline: 2px solid #a2b6a8; outline-offset: 1px; }
+.lex-panel-label { margin: 16px 0 8px; font-size: 11px; color: #87958a; }
+.lex-custom-color { position: relative; }
+.lex-delete-color { display: grid; place-items: center; position: absolute; right: -4px; top: -5px; width: 19px; height: 19px; background: #fff; border: 1px solid #d7dfd8; border-radius: 50%; }
+.lex-color-add { display: flex; align-items: center; gap: 8px; }
+.lex-color-add input { min-width: 0; width: 100%; height: 36px; border: 1px solid #dce5df; border-radius: 8px; padding: 6px; font-size: 12px; }
+.lex-color-add input[type="color"] { flex: 0 0 36px; padding: 3px; }
+.lex-color-add button { display: flex; align-items: center; gap: 3px; flex-shrink: 0; height: 36px; padding: 0 9px; background: #e8f0eb; border-radius: 8px; font-size: 12px; }
+.lex-link-fields { display: grid; gap: 12px; }
+.lex-link-fields label { display: grid; gap: 6px; font-size: 11px; color: #748777; }
+.lex-link-fields input { width: 100%; border: 1px solid #dce5df; border-radius: 10px; padding: 10px; font-size: 14px; color: #303632; }
+.lex-tools input:focus { outline: 2px solid #afc5b5; outline-offset: 1px; }
+.lex-apply-link { background: #48685b; color: white; padding: 11px; border-radius: 10px; font-size: 12px; }
+.lex-link-removal { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 8px; border-top: 1px solid #edf1eb; }
+.lex-link-removal button { display: flex; align-items: center; gap: 4px; min-height: 36px; font-size: 11px; }
+.lex-tool-error { padding: 0 12px 12px; color: #b44a3c; font-size: 12px; }
+@media (max-width: 767px) {
+  .lex-editor-overlay { padding: 12px; }
+  .lex-editor-dialog { max-height: calc(100dvh - 24px); border-radius: 22px; }
+  .lex-editor-header { padding: 18px; }
+  .lex-editor-header h2 { font-size: 20px; }
+  .lex-editor-body { padding: 18px; }
+  .lex-editor-footer { padding: 14px 18px max(14px, env(safe-area-inset-bottom)); }
+  .lex-font-switch { gap: 3px; padding: 8px; }
+  .lex-font-switch select { font-size: 11px; max-width: 95px; }
+  .lex-editor-field, .lex-editor-dialog input, .lex-tools input:not([type="color"]) { font-size: 16px; }
+  .lex-tools-row { gap: 1px; }
+  .lex-tools-row button { width: 36px; height: 38px; }
+  .lex-editor-intro { font-size: 11px; margin-bottom: 22px; }
+}

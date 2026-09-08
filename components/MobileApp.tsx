@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import EditorToolbar from "./EditorToolbar";
+import { FontSwitcher } from "./FontPreference";
 import { supabase } from "@/app/lib/supabase";
 
 type Answer = "O" | "X";
@@ -2426,7 +2428,8 @@ function QuestionForm({
   };
 
   const removeExtraPoint = (index: number) => {
-    setExtraPoints((prev) => prev.filter((_, i) => i !== index));
+    const snapshots = extraPoints.map((point, i) => ({ ...point, descriptionHtml: extraPointRefs.current[i]?.innerHTML ?? point.descriptionHtml }));
+    setExtraPoints(snapshots.filter((_, i) => i !== index));
   };
   const [customColors, setCustomColors] = useState<string[]>([]);
 
@@ -2478,39 +2481,25 @@ function QuestionForm({
     savedSelectionRef.current = null;
   };
 
-  const insertLink = () => {
-    const url = prompt("링크 주소를 입력해줘.");
-    if (!url) return;
-
-    const selection = window.getSelection();
-    if (!selection || !selection.toString()) return;
-
+  const insertLink = (url: string) => {
+    restoreSelection();
     document.execCommand("createLink", false, url);
-
-    const anchor = selection.anchorNode?.parentElement?.closest("a");
-    if (anchor) {
-      anchor.target = "_blank";
-      anchor.rel = "noopener noreferrer";
-    }
+    const selection = window.getSelection();
+    const anchor = selection?.anchorNode?.parentElement?.closest("a");
+    if (anchor) { anchor.target = "_blank"; anchor.rel = "noopener noreferrer"; }
   };
 
-  const insertLawLink = () => {
+  const insertLawLink = (lawName: string, articleNo: string) => {
+    restoreSelection();
     const selection = window.getSelection();
-    if (!selection || !selection.toString().trim()) {
-      alert("법령으로 연결할 글자를 먼저 드래그해줘.");
-      return;
-    }
-
-    const lawName = prompt("법령명을 입력해줘. 예: 민법, 형법, 변호사법");
-    if (!lawName?.trim()) return;
-
-    const articleNo = prompt("조문 번호를 입력해줘. 예: 750, 14의2, 14조의2");
-    if (!articleNo?.trim()) return;
-
-    const selectedText = selection.toString();
-
-    const html = `<span role="button" data-law-name="${lawName.trim()}" data-article-no="${articleNo.trim()}" class="law-auto-link">${selectedText}</span>`;
-    document.execCommand("insertHTML", false, html);
+    if (!selection?.toString().trim()) return;
+    const span = document.createElement("span");
+    span.setAttribute("role", "button");
+    span.dataset.lawName = lawName;
+    span.dataset.articleNo = articleNo;
+    span.className = "law-auto-link";
+    span.textContent = selection.toString();
+    document.execCommand("insertHTML", false, span.outerHTML);
   };
 
   const handleDisableAutoLinkInEditor = (
@@ -2667,19 +2656,21 @@ function QuestionForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/25 p-4 backdrop-blur-sm">
-      <div className="mx-auto flex max-h-[calc(100svh-32px)] max-w-[430px] flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-[#e5e7eb] px-5 py-4">
-          <h2 className="text-[16px] font-bold tracking-[-0.03em]">
+    <div className="lex-editor-overlay fixed inset-0 z-50">
+      <div role="dialog" aria-modal="true" aria-label={question ? "문제 수정" : "문제 추가"} className="lex-editor-dialog">
+        <header className="lex-editor-header">
+          <div><p className="lex-editor-eyebrow">MY STUDY NOTE</p><h2 className="text-[22px] font-semibold tracking-[-0.03em]">
             {question ? "문제 수정" : "문제 추가"}
-          </h2>
+          </h2></div>
+          <div className="flex items-center gap-2"><FontSwitcher />
 
-          <button onClick={onClose} className="text-[22px] text-[#8a94a6]">
+          <button type="button" aria-label="편집창 닫기" onClick={onClose} className="lex-editor-close">
             ×
           </button>
-        </header>
+        </div></header>
 
-        <div className="overflow-y-auto px-5 py-5">
+        <div className="lex-editor-body">
+          <p className="lex-editor-intro">지문과 해설을 정리하고, 중요한 문장에 표시를 남겨보세요.</p>
           <Label className="mt-5">OX 지문</Label>
           <EditorToolbar
             runCommand={runCommand}
@@ -2703,10 +2694,10 @@ function QuestionForm({
               <button
                 key={v}
                 onClick={() => setAnswer(v)}
-                className={`h-9 rounded-full px-5 text-[13px] font-bold ${
+                className={`h-11 rounded-full px-5 text-[13px] font-bold ${
                   answer === v
-                    ? "bg-[#0f2a5f] text-white"
-                    : "bg-[#eef2f8] text-[#596275]"
+                    ? "bg-[#48685b] text-white"
+                    : "bg-[#e8f0eb] text-[#596275]"
                 }`}
               >
                 {v}
@@ -2739,7 +2730,7 @@ function QuestionForm({
               <button
                 type="button"
                 onClick={addExtraPoint}
-                className="rounded-full bg-[#eef2f8] px-3 py-1.5 text-[11px] font-bold text-[#0f2a5f]"
+                className="rounded-full bg-[#e8f0eb] px-3 py-1.5 text-[11px] font-bold text-[#48685b]"
               >
                 + 추가
               </button>
@@ -2749,7 +2740,7 @@ function QuestionForm({
               {extraPoints.map((point, index) => (
                 <div
                   key={index}
-                  className="rounded-2xl border border-[#dce2ee] p-4"
+                  className="lex-extra-point rounded-2xl border border-[#dde5df] p-4"
                 >
                   <div className="flex gap-2">
                     <input
@@ -2757,14 +2748,16 @@ function QuestionForm({
                       onChange={(e) =>
                         updateExtraPoint(index, "category", e.target.value)
                       }
+                      aria-label="추가 포인트 유형"
                       placeholder="유형"
-                      className="h-10 flex-1 rounded-xl border border-[#dce2ee] px-3 text-[12px] outline-none"
+                      className="h-10 flex-1 rounded-xl border border-[#dde5df] px-3 text-[12px] outline-none"
                     />
 
                     <button
                       type="button"
+                      aria-label="추가 포인트 삭제"
                       onClick={() => removeExtraPoint(index)}
-                      className="ml-auto h-10 w-10 rounded-xl border border-[#dce2ee] text-[14px] text-[#8a94a6]"
+                      className="ml-auto h-10 w-10 rounded-xl border border-[#dde5df] text-[14px] text-[#8a94a6]"
                     >
                       ×
                     </button>
@@ -2775,8 +2768,9 @@ function QuestionForm({
                     onChange={(e) =>
                       updateExtraPoint(index, "title", e.target.value)
                     }
+                    aria-label="추가 포인트 제목"
                     placeholder="제목"
-                    className="mt-3 h-11 w-full rounded-xl border border-[#dce2ee] px-3 text-[13px] outline-none"
+                    className="mt-3 h-11 w-full rounded-xl border border-[#dde5df] px-3 text-[13px] outline-none"
                   />
 
                   <div className="mt-2">
@@ -2806,10 +2800,10 @@ function QuestionForm({
           </div>
         </div>
 
-        <footer className="flex justify-end gap-2 border-t border-[#e5e7eb] px-5 py-4">
+        <footer className="lex-editor-footer">
           <button
             onClick={onClose}
-            className="h-9 rounded-full bg-[#eef2f8] px-5 text-[13px] font-bold text-[#596275]"
+            className="h-11 rounded-full bg-[#e8f0eb] px-5 text-[13px] font-bold text-[#596275]"
           >
             취소
           </button>
@@ -2836,7 +2830,7 @@ function QuestionForm({
                 disabledAutoLinks,
               })
             }
-            className="h-9 rounded-full bg-[#0f2a5f] px-5 text-[13px] font-bold text-white"
+            className="h-11 rounded-full bg-[#48685b] px-5 text-[13px] font-bold text-white"
           >
             저장
           </button>
@@ -2905,257 +2899,14 @@ function EditorBox({
         setRef?.(el);
       }}
       onClick={handleEditorClick}
+      role="textbox"
+      aria-label={placeholder}
+      aria-multiline="true"
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
-      className="min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
+      className="lex-editor-field min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
     />
-  );
-}
-
-function EditorToolbar({
-  runCommand,
-  insertLink,
-  insertLawLink,
-  unlinkLawLink,
-  unlinkSelectedAutoLawLink,
-  customColors,
-  saveCustomColors,
-  saveSelection,
-}: {
-  runCommand: (command: string, value?: string) => void;
-  insertLink: () => void;
-  insertLawLink: () => void;
-  unlinkLawLink: () => void;
-  unlinkSelectedAutoLawLink: () => void;
-  customColors: string[];
-  saveCustomColors: (colors: string[]) => void;
-  saveSelection: () => void;
-}) {
-  const [textPaletteOpen, setTextPaletteOpen] = useState(false);
-  const [highlightPaletteOpen, setHighlightPaletteOpen] = useState(false);
-
-  const baseColors = ["#e45f5f", "#4778c7", "#f1d466", "#83bd95", "#b79add"];
-
-  const addCustomColor = (color: string) => {
-    const next = color.trim();
-
-    if (!/^#[0-9a-fA-F]{6}$/.test(next)) {
-      alert("#000000 형식으로 입력해줘.");
-      return;
-    }
-
-    if (customColors.includes(next)) return;
-
-    saveCustomColors([...customColors, next]);
-  };
-
-  const deleteCustomColor = (color: string) => {
-    if (!confirm("이 색상을 삭제할까?")) return;
-    saveCustomColors(customColors.filter((item) => item !== color));
-  };
-
-  return (
-    <div className="relative flex min-h-8 flex-wrap items-center gap-1 rounded-t-[16px] border border-[#dce2ee] bg-[#f8fafc] px-2 py-1.5">
-      <ToolIcon onClick={() => runCommand("bold")}>B</ToolIcon>
-
-      <ToolIcon onClick={() => runCommand("underline")}>
-        <span className="underline">U</span>
-      </ToolIcon>
-
-      <ToolIcon onClick={() => runCommand("italic")}>
-        <span className="italic">I</span>
-      </ToolIcon>
-
-      <ToolIcon onClick={() => runCommand("strikeThrough")}>
-        <span className="line-through">S</span>
-      </ToolIcon>
-
-      <span className="mx-0.5 h-4 w-px bg-[#d7ddea]" />
-
-      <div className="relative">
-        <ToolIcon
-          onClick={() => {
-            saveSelection();
-            setTextPaletteOpen((prev) => !prev);
-            setHighlightPaletteOpen(false);
-          }}
-        >
-          <span className="font-black text-[#22c55e]">C</span>
-        </ToolIcon>
-
-        {textPaletteOpen && (
-          <ColorPalette
-            baseColors={baseColors}
-            customColors={customColors}
-            onNone={() => runCommand("foreColor", "#303236")}
-            onPick={(color) => runCommand("foreColor", color)}
-            onAdd={addCustomColor}
-            onDelete={deleteCustomColor}
-            onClose={() => setTextPaletteOpen(false)}
-          />
-        )}
-      </div>
-
-      <div className="relative">
-        <ToolIcon
-          onClick={() => {
-            saveSelection();
-            setHighlightPaletteOpen((prev) => !prev);
-            setTextPaletteOpen(false);
-          }}
-        >
-          <span className="rounded-[3px] bg-[#22c55e] px-1 font-black text-white">
-            C
-          </span>
-        </ToolIcon>
-
-        {highlightPaletteOpen && (
-          <ColorPalette
-            baseColors={baseColors}
-            customColors={customColors}
-            onNone={() => runCommand("backColor", "transparent")}
-            onPick={(color) => runCommand("backColor", color)}
-            onAdd={addCustomColor}
-            onDelete={deleteCustomColor}
-            onClose={() => setHighlightPaletteOpen(false)}
-          />
-        )}
-      </div>
-
-      <span className="mx-0.5 h-4 w-px bg-[#d7ddea]" />
-
-      <ToolIcon onClick={insertLink}>URL</ToolIcon>
-      <ToolIcon onClick={insertLawLink}>법</ToolIcon>
-      <ToolIcon onClick={unlinkLawLink}>해제</ToolIcon>
-      <ToolIcon onClick={unlinkSelectedAutoLawLink}>자동해제</ToolIcon>
-    </div>
-  );
-}
-
-function ToolIcon({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      className="flex h-6 min-w-6 items-center justify-center rounded-[5px] border border-[#cfd6e3] bg-white px-1.5 text-[11px] font-bold text-[#303236] active:bg-[#eef2f8]"
-    >
-      {children}
-    </button>
-  );
-}
-
-function ColorPalette({
-  baseColors,
-  customColors,
-  onNone,
-  onPick,
-  onAdd,
-  onDelete,
-  onClose,
-}: {
-  baseColors: string[];
-  customColors: string[];
-  onNone: () => void;
-  onPick: (color: string) => void;
-  onAdd: (color: string) => void;
-  onDelete: (color: string) => void;
-  onClose: () => void;
-}) {
-  const [newColor, setNewColor] = useState("#000000");
-  const colors = [...baseColors, ...customColors];
-
-  return (
-    <>
-      <button
-        type="button"
-        className="fixed inset-0 z-40 cursor-default"
-        onClick={onClose}
-        aria-label="색상창 닫기"
-      />
-
-      <div className="absolute left-0 top-8 z-50 w-[220px] rounded-[12px] border border-[#cfd6e3] bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.18)]">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              onNone();
-              onClose();
-            }}
-            className="h-6 rounded-md border border-[#dce2ee] px-2 text-[10px] font-bold text-[#596275]"
-          >
-            없음
-          </button>
-
-          {colors.map((color) => {
-            const isCustom = customColors.includes(color);
-
-            return (
-              <div key={color} className="relative">
-                <button
-                  type="button"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    onPick(color);
-                    onClose();
-                  }}
-                  className="h-6 w-6 rounded-[6px] border border-white shadow-[0_0_0_1px_rgba(0,0,0,0.12)]"
-                  style={{ backgroundColor: color }}
-                  title={color}
-                />
-
-                {isCustom && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(color);
-                    }}
-                    className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#111827] text-[9px] font-bold leading-none text-white"
-                    aria-label="색상 삭제"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-3 flex items-center gap-1.5">
-          <input
-            type="color"
-            value={newColor}
-            onChange={(e) => setNewColor(e.target.value)}
-            className="h-7 w-8 rounded-md border border-[#dce2ee] bg-white"
-          />
-
-          <input
-            value={newColor}
-            onChange={(e) => setNewColor(e.target.value)}
-            placeholder="#000000"
-            maxLength={7}
-            className="h-7 min-w-0 flex-1 rounded-md border border-[#dce2ee] px-2 text-[11px] font-bold text-[#596275] outline-none"
-          />
-
-          <button
-            type="button"
-            onClick={() => onAdd(newColor)}
-            className="h-7 rounded-md bg-[#0f2a5f] px-2 text-[10px] font-bold text-white"
-          >
-            추가
-          </button>
-        </div>
-      </div>
-    </>
   );
 }
 
