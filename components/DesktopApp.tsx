@@ -1,4 +1,5 @@
 "use client";
+import {FolderForm,SubjectForm} from "./StudyFolderForm";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -13,12 +14,16 @@ type Answer = "O" | "X";
 type Screen = "home" | "subjects" | "chapters" | "questions" | "detail";
 
 type Subject = {
+  icon?: string;
+  desc?: string;
     id: string;
     name: string;
     color: string;
 };
 
 type Chapter = {
+  icon?: string;
+  desc?: string;
     id: string;
     subjectId: string;
     parentId: string | null;
@@ -1150,7 +1155,7 @@ useEffect(() => {
                     }}
                     >
                     <div className="flex items-center gap-3">
-                        <FolderIcon color={s.color || "#4b6cb7"} />
+                        <span className="study-symbol">{s.icon??"#"}</span>
 
                         <div>
                             <p className="text-[15px] font-semibold tracking-[-0.03em] text-[#303236]">
@@ -1417,12 +1422,22 @@ useEffect(() => {
             const direction = action.kind === "up" ? -1 : 1;
             if (action.subject) moveSubjectOrder(action.id, direction); else moveChapterOrder(action.id, direction);
           } else if (action.kind === "add") {
-            const id = uid(); setChapters(prev => [...prev, {id, subjectId:sid, parentId:action.subject?null:action.id, title:action.title!, type:action.type, color:action.color}]);
+            const id = uid(); setChapters(prev => [...prev, {id, subjectId:sid, parentId:action.subject?null:action.id, title:action.title!, type:action.type, icon:action.icon, desc:action.desc}]);
           } else if (action.kind === "edit") {
-            if (action.subject) setSubjects(prev => prev.map(s => s.id===action.id?{...s,name:action.title!,color:action.color!}:s));
-            else setChapters(prev => prev.map(c => c.id===action.id?{...c,title:action.title!,color:action.color}:c));
+            if (action.subject) setSubjects(prev => prev.map(s => s.id===action.id?{...s,name:action.title!,icon:action.icon,desc:action.desc}:s));
+            else setChapters(prev => prev.map(c => c.id===action.id?{...c,title:action.title!,icon:action.icon,desc:action.desc}:c));
           } else if (action.kind === "move") {
-            moveChapter(action.id, action.parentId ?? null);
+            const destination = action.targetSubjectId || sid;
+            if (action.subject && destination === sid) return;
+            const ids = action.subject ? chapters.filter(c=>c.subjectId===sid).map(c=>c.id) : [action.id,...getDescendantChapterIds(action.id)];
+            if (action.parentId && ids.includes(action.parentId)) return;
+            if (action.subject) {
+              const original = subjects.find(s=>s.id===action.id); if (!original) return;
+              setSubjects(prev=>prev.filter(s=>s.id!==action.id));
+              setChapters(prev=>[...prev.map(c=>ids.includes(c.id)?{...c,subjectId:destination,parentId:c.parentId??action.id}:c),{id:action.id,subjectId:destination,parentId:action.parentId??null,title:original.name,type:"folder",icon:original.icon,desc:original.desc}]);
+            } else setChapters(prev=>prev.map(c=>ids.includes(c.id)?{...c,subjectId:destination,...(c.id===action.id?{parentId:action.parentId??null}:{})}:c));
+            setQuestions(prev=>prev.map(q=>(action.subject?q.subjectId===sid:ids.includes(q.chapterId))?{...q,subjectId:destination}:q));
+            if (ids.includes(chapterId)||subjectId===sid&&action.subject) {setSubjectId(destination);if(chapterId===action.id)setCurrentParentId(action.parentId??null);}
           } else if (action.kind === "delete") {
             const ids = action.subject ? chapters.filter(c=>c.subjectId===sid).map(c=>c.id) : [action.id,...getDescendantChapterIds(action.id)];
             if (action.subject) setSubjects(prev=>prev.filter(s=>s.id!==action.id));
@@ -1464,7 +1479,7 @@ useEffect(() => {
           {
             id,
             name: data.name,
-            color: data.color,
+            color: data.color, icon: data.icon, desc: data.desc,
           },
         ]);
 
@@ -1494,7 +1509,7 @@ useEffect(() => {
           parentId: folderParentId,
           title: data.name,
           type: "folder",
-          color: data.color,
+          color: data.color, icon: data.icon, desc: data.desc,
         },
       ]);
 
@@ -1580,7 +1595,7 @@ function NavigationDrawer({
               className="flex h-12 w-full items-center gap-3 rounded-[20px] border border-[#e4e8f0] bg-[#fbfcfe] px-3.5 text-left transition active:scale-[0.99]"
             >
               {selectedSubject ? (
-                <FolderIcon size={18} color={selectedSubject.color || "#4b6cb7"} />
+                <span className="study-symbol">{selectedSubject.icon??"#"}</span>
               ) : (
                 <span className="h-[18px] w-[18px] rounded-md bg-[#e4e8f0]" />
               )}
@@ -1620,7 +1635,7 @@ function NavigationDrawer({
                               : "hover:bg-[#fbfcfe]"
                           }`}
                         >
-                          <FolderIcon size={17} color={subject.color || "#4b6cb7"} />
+                          <span className="study-symbol">{subject.icon??"#"}</span>
                           <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-[#303236]">
                             {subject.name}
                           </span>
@@ -1827,7 +1842,7 @@ function NavigationDrawer({
                   }}
                 >
                   <span className={isFolder ? "flex min-w-0 items-center gap-3" : "flex min-w-0 items-center gap-2"}>
-                    {isFolder && <FolderIcon color={c.color || "#4b6cb7"} />}
+                    {isFolder && <span className="study-symbol">{c.icon??"#"}</span>}
 
                     <span className="truncate">{c.title}</span>
                   </span>
@@ -3331,244 +3346,6 @@ function ChevronToggle({ open }: { open: boolean }) {
           strokeWidth="2.1"
           strokeLinecap="round"
         />
-      </svg>
-    );
-  }
-
-  function FolderForm({
-    onClose,
-    onSave,
-  }: {
-    onClose: () => void;
-    onSave: (data: { name: string; color: string }) => void;
-  }) {
-    const presetColors = [
-      "#4b6cb7",
-      "#9b8bd8",
-      "#d98b8b",
-      "#83bd95",
-      "#f1d466",
-      "#6bc7c1",
-      "#f29cc0",
-      "#8b95a7",
-    ];
-
-    const [name, setName] = useState("");
-    const [color, setColor] = useState("#4b6cb7");
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-end bg-black/25">
-        <div className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
-          <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
-            폴더 추가
-          </p>
-
-          <div className="mt-5">
-            <p className="mb-2 text-[12px] font-bold text-[#596275]">
-              폴더명
-            </p>
-
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="폴더명을 입력해줘."
-              className="h-11 w-full rounded-2xl border border-[#dce2ee] px-4 text-[14px] outline-none"
-            />
-          </div>
-
-          <div className="mt-5">
-            <p className="mb-3 text-[12px] font-bold text-[#596275]">
-              색상
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              {presetColors.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setColor(preset)}
-                  className={`h-8 w-8 rounded-full transition-all ${
-                    color === preset ? "scale-110 ring-2 ring-[#111827]" : ""
-                  }`}
-                  style={{ backgroundColor: preset }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10 w-12 rounded-xl border border-[#dce2ee]"
-              />
-
-              <input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10 flex-1 rounded-xl border border-[#dce2ee] px-3 text-[13px] outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-2">
-            <button
-              onClick={onClose}
-              className="h-11 flex-1 rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
-            >
-              취소
-            </button>
-
-            <button
-              onClick={() => {
-                if (!name.trim()) return;
-
-                onSave({
-                  name: name.trim(),
-                  color,
-                });
-              }}
-              className="h-11 flex-1 rounded-2xl bg-[#8a7544] text-[13px] font-bold text-white"
-            >
-              저장
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function SubjectForm({
-    subject,
-    onClose,
-    onSave,
-  }: {
-    subject?: Subject;
-    onClose: () => void;
-    onSave: (data: { name: string; color: string }) => void;
-  }) {
-    const presetColors = [
-      "#4b6cb7",
-      "#9b8bd8",
-      "#d98b8b",
-      "#83bd95",
-      "#f1d466",
-      "#6bc7c1",
-      "#f29cc0",
-      "#8b95a7",
-    ];
-
-    const [name, setName] = useState(subject?.name ?? "");
-    const [color, setColor] = useState(subject?.color ?? "#4b6cb7");
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-end bg-black/25">
-        <div className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
-          <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
-            {subject ? "과목 수정" : "과목 추가"}
-          </p>
-
-          <div className="mt-5">
-            <p className="mb-2 text-[12px] font-bold text-[#596275]">
-              과목명
-            </p>
-
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="민법"
-              className="h-11 w-full rounded-2xl border border-[#dce2ee] px-4 text-[14px] outline-none"
-            />
-          </div>
-
-          <div className="mt-5">
-            <p className="mb-3 text-[12px] font-bold text-[#596275]">
-              색상
-            </p>
-
-            <div className="flex flex-wrap gap-3">
-              {presetColors.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setColor(preset)}
-                  className={`h-8 w-8 rounded-full transition-all ${
-                    color === preset
-                      ? "scale-110 ring-2 ring-[#111827]"
-                      : ""
-                  }`}
-                  style={{ backgroundColor: preset }}
-                />
-              ))}
-            </div>
-
-            <div className="mt-4 flex items-center gap-2">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10 w-12 rounded-xl border border-[#dce2ee]"
-              />
-
-              <input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10 flex-1 rounded-xl border border-[#dce2ee] px-3 text-[13px] outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex gap-2">
-            <button
-              onClick={onClose}
-              className="h-11 flex-1 rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
-            >
-              취소
-            </button>
-
-            <button
-              onClick={() => {
-                if (!name.trim()) return;
-
-                onSave({
-                  name: name.trim(),
-                  color,
-                });
-              }}
-              className="h-11 flex-1 rounded-2xl bg-[#8a7544] text-[13px] font-bold text-white"
-            >
-              저장
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function FolderIcon({
-    size = 22,
-    color = "#e7a3ad",
-    filled = true,
-    className = "",
-  }: {
-    size?: number;
-    color?: string;
-    filled?: boolean;
-    className?: string;
-  }) {
-    return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-      >
-        <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z" />
       </svg>
     );
   }

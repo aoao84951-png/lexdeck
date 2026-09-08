@@ -329,3 +329,13 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-inline-actions footer button { padding: 6px 12px; border-radius: 8px; background: #f5eac7; }
 .study-inline-actions footer button:disabled { opacity: .4; }
 .study-inline-actions footer .study-inline-delete { background: #fbeeee; color: #b36565; }
+
+.study-inline-actions { background: #f8fafc; border-color: #e7edf2; color: #687887; }
+.study-inline-tools button { padding: 4px 5px; }
+.study-inline-actions .study-symbol-trigger { width: 28px; height: 28px; flex-shrink: 0; border-radius: 8px; background: white; font-size: 18px; }
+.study-inline-actions .study-inline-description { width: 100%; margin-top: 6px; }
+.study-inline-actions fieldset { margin-top: 8px; }
+.study-inline-actions .study-inline-kind { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 11px; }
+.study-inline-destination { width: 100%; }
+.study-inline-actions .study-inline-order { display: flex; gap: 4px; margin-right: auto; }
+.study-inline-actions .study-inline-order button { background: transparent; }

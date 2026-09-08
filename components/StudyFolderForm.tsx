@@ -1,0 +1,10 @@
+"use client";
+import {useState} from 'react';
+import {FolderSymbolPicker} from './FolderSymbols';
+type Data={name:string;color:string;icon:string;desc:string};
+export function SubjectForm({subject,onClose,onSave}:{subject?:{name:string;color:string;icon?:string;desc?:string};onClose:()=>void;onSave:(data:Data)=>void}){return <SymbolForm initial={subject} title={subject?'과목 수정':'과목 추가'} onClose={onClose} onSave={onSave}/>;}
+export function FolderForm({onClose,onSave}:{onClose:()=>void;onSave:(data:Data)=>void}){return <SymbolForm title="폴더 추가" onClose={onClose} onSave={onSave}/>;}
+function SymbolForm({initial,title,onClose,onSave}:{initial?:{name:string;color:string;icon?:string;desc?:string};title:string;onClose:()=>void;onSave:(data:Data)=>void}){
+ const [name,setName]=useState(initial?.name||''),[icon,setIcon]=useState(initial?.icon??'#'),[desc,setDesc]=useState(initial?.desc||''),[symbols,setSymbols]=useState(false);
+ return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/25" onClick={onClose}><form role="dialog" aria-modal="true" aria-label={title} onClick={e=>e.stopPropagation()} onSubmit={e=>{e.preventDefault();if(name.trim())onSave({name:name.trim(),icon,desc,color:initial?.color||'#d5b66a'});}} className="max-h-[85dvh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-white p-5 pb-[max(20px,env(safe-area-inset-bottom))]"><h2 className="mb-5 text-lg font-semibold">{title}</h2><div className="study-inline-actions"><div className="study-inline-fields"><button type="button" className="study-symbol study-symbol-trigger" aria-label="폴더 기호 변경" onClick={()=>setSymbols(!symbols)}>{icon||'없음'}</button><input autoFocus aria-label="이름" placeholder="이름" value={name} onChange={e=>setName(e.target.value)}/></div>{symbols&&<FolderSymbolPicker value={icon} onChange={setIcon}/>}<input className="study-inline-description" aria-label="폴더 설명" placeholder="설명 (선택)" value={desc} onChange={e=>setDesc(e.target.value)}/><footer><button type="button" onClick={onClose}>취소</button><button disabled={!name.trim()}>저장</button></footer></div></form></div>;
+}
