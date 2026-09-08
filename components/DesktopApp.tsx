@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import StudyHeader from "./StudyHeader";
+import StudyNavigation from "./StudyNavigation";
+import StudyHome from "./StudyHome";
 import EditorToolbar from "./EditorToolbar";
 import { FontSwitcher } from "./FontPreference";
 import { supabase } from "@/app/lib/supabase";
 
 type Answer = "O" | "X";
-type Screen = "subjects" | "chapters" | "questions" | "detail";
+type Screen = "home" | "subjects" | "chapters" | "questions" | "detail";
 
 type Subject = {
     id: string;
@@ -77,7 +80,7 @@ function StarIcon({ active = true, size = 15 }: StarIconProps) {
       aria-hidden="true"
       className={`shrink-0 transition-all ${
         active
-          ? "text-[#ef4444] drop-shadow-[0_2px_5px_rgba(239,68,68,0.18)]"
+          ? "text-[#c5a24e] drop-shadow-[0_2px_5px_rgba(239,68,68,0.18)]"
           : "text-[#c7ceda]"
       }`}
     >
@@ -125,10 +128,10 @@ const stripHtml = (html: string) =>
 
 const makeAutoLinkKey = (lawName: string, articleNo: string, text: string) =>
     `${lawName}__${articleNo}__${text}`;
-  
+
 const stripEditorControls = (html: string) => {
     if (!html) return "";
-  
+
     return html
       .replace(/<button[^>]*data-law-remove="true"[^>]*>[\s\S]*?<\/button>/g, "")
       .replace(/<span[^>]*data-disable-law-link="true"[^>]*>[\s\S]*?<\/span>/g, "")
@@ -137,22 +140,22 @@ const stripEditorControls = (html: string) => {
 
   const cleanEditorHtml = (html: string) => {
     const cleaned = stripEditorControls(html).replace(/\u200B/g, "");
-  
+
     const div = document.createElement("div");
     div.innerHTML = cleaned;
-  
+
     div.querySelectorAll<HTMLElement>("*").forEach((el) => {
       el.removeAttribute("class");
-  
+
       const color = el.style.color;
       const backgroundColor = el.style.backgroundColor;
-  
+
       el.removeAttribute("style");
-  
+
       if (color) el.style.color = color;
       if (backgroundColor) el.style.backgroundColor = backgroundColor;
     });
-  
+
     return div.innerHTML;
   };
 
@@ -207,7 +210,7 @@ const formatArticleNo = (articleNo: string) =>
   articleNo.includes("의")
     ? `${articleNo.replace("의", "조의")}`
     : `${articleNo}조`;
-  
+
   const linkLawText = (html: string, disabledAutoLinks: string[] = []) => {
   if (!html) return "";
 
@@ -264,40 +267,40 @@ const normalizeSearch = (value: string) =>
 
 const highlightKeyword = (text: string, keyword: string) => {
     const cleanKeyword = keyword.replace(/\s+/g, "").trim();
-  
+
     if (!cleanKeyword) return text;
-  
+
     const chars = text.split("");
-  
+
     let normalized = "";
     const indexMap: number[] = [];
-  
+
     chars.forEach((char, index) => {
       if (char !== " ") {
         normalized += char.toLowerCase();
         indexMap.push(index);
       }
     });
-  
+
     const normalizedKeyword = cleanKeyword.toLowerCase();
-  
+
     const matchIndex = normalized.indexOf(normalizedKeyword);
-  
+
     if (matchIndex === -1) {
       return text;
     }
-  
+
     const start = indexMap[matchIndex];
     const end = indexMap[matchIndex + normalizedKeyword.length - 1];
-  
+
     return (
       <>
         {text.slice(0, start)}
-  
+
         <mark className="rounded-[4px] bg-[#fff0a8] px-0.5 text-[#111827]">
           {text.slice(start, end + 1)}
         </mark>
-  
+
         {text.slice(end + 1)}
       </>
     );
@@ -308,7 +311,7 @@ export default function DesktopApp() {
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
 
-  const [screen, setScreen] = useState<Screen>("subjects");
+  const [screen, setScreen] = useState<Screen>("home");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
   const [questionId, setQuestionId] = useState("");
@@ -370,14 +373,14 @@ export default function DesktopApp() {
       expandedIds,
       currentParentId,
     };
-  
+
     if (isHistoryMoving.current) {
       isHistoryMoving.current = false;
       lastHistoryLevel.current = historyLevel;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       return;
     }
-  
+
     if (isFirstHistoryState.current) {
       window.history.replaceState(state, "", window.location.href);
       isFirstHistoryState.current = false;
@@ -394,14 +397,14 @@ export default function DesktopApp() {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [screen, subjectId, chapterId, questionId, showAnswer, search, expandedIds, currentParentId, historyLevel]);
-  
+
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
       if (!state) return;
-  
+
       isHistoryMoving.current = true;
-  
+
       setScreen(state.screen || "subjects");
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
@@ -410,7 +413,7 @@ export default function DesktopApp() {
       setSearch(state.search || "");
       setExpandedIds(state.expandedIds || []);
       setCurrentParentId(state.currentParentId ?? null);
-  
+
       setFormOpen(false);
       setSubjectFormOpen(false);
       setLawModalOpen(false);
@@ -419,9 +422,9 @@ export default function DesktopApp() {
       setMovingChapterId(null);
       setSidebarOpen(false);
     };
-  
+
     window.addEventListener("popstate", handlePopState);
-  
+
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
@@ -429,12 +432,12 @@ export default function DesktopApp() {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-  
+
     if (!saved) return;
-  
+
     try {
       const state = JSON.parse(saved);
-  
+
       setScreen(state.screen || "subjects");
       setSubjectId(state.subjectId || "");
       setChapterId(state.chapterId || "");
@@ -665,7 +668,7 @@ useEffect(() => {
 
   const getDescendantChapterIds = (id: string): string[] => {
     const children = chapters.filter((c) => c.parentId === id);
-  
+
     return children.flatMap((child) => [
       child.id,
       ...getDescendantChapterIds(child.id),
@@ -674,11 +677,11 @@ useEffect(() => {
 
   const visibleQuestions = useMemo(() => {
     const keyword = normalizeSearch(search);
-  
+
     const filtered = questions.filter((q) => {
       const subject = subjects.find((s) => s.id === q.subjectId);
       const chapter = chapters.find((c) => c.id === q.chapterId);
-  
+
       const target = [
         subject?.name,
         chapter?.title,
@@ -692,18 +695,18 @@ useEffect(() => {
       ]
         .join(" ")
         .toLowerCase();
-  
+
       const normalizedTarget = normalizeSearch(target);
-  
+
       if (keyword) return normalizedTarget.includes(keyword);
-  
+
       return q.chapterId === chapterId;
     });
-  
+
     return filtered.sort((a, b) => {
       const aIndex = questions.findIndex((q) => q.id === a.id);
       const bIndex = questions.findIndex((q) => q.id === b.id);
-  
+
       if (questionSortOrder === "oldest") return aIndex - bIndex;
       return bIndex - aIndex;
     });
@@ -712,10 +715,10 @@ useEffect(() => {
   const groupedQuestions = useMemo(() => {
     return visibleQuestions.reduce((acc, q) => {
       const key = q.chapterId;
-  
+
       if (!acc[key]) acc[key] = [];
       acc[key].push(q);
-  
+
       return acc;
     }, {} as Record<string, Question[]>);
   }, [visibleQuestions]);
@@ -749,9 +752,9 @@ useEffect(() => {
   const addChapter = (parentId: string | null = null) => {
     const title = prompt("목차명을 입력해줘.");
     if (!title?.trim()) return;
-  
+
     const id = uid();
-  
+
     setChapters((prev) => [
       ...prev,
       {
@@ -762,11 +765,11 @@ useEffect(() => {
         type: "chapter",
       },
     ]);
-  
+
     if (parentId) {
       setExpandedIds((prev) => (prev.includes(parentId) ? prev : [...prev, parentId]));
     }
-  
+
     setChapterId(id);
     setScreen("chapters");
   };
@@ -788,20 +791,20 @@ useEffect(() => {
   const selectChapter = (id: string) => {
     const target = chapters.find((c) => c.id === id);
     const isFolder = target?.type === "folder";
-  
+
     setChapterId(id);
     setSearch("");
     setShowAnswer(false);
-  
+
     if (isFolder) {
       setCurrentParentId(id);
       return;
     }
-  
+
     const first = questions.find((q) => q.chapterId === id);
     if (first) setQuestionId(first.id);
     else setQuestionId("");
-  
+
     setScreen("questions");
   };
 
@@ -815,122 +818,122 @@ useEffect(() => {
     setEditingSubjectId(id);
     setSubjectFormOpen(true);
   };
-  
+
   const deleteSubject = (id: string) => {
     if (!confirm("이 과목과 해당 목차, 문제들을 모두 삭제할까?")) return;
-  
+
     setSubjects((prev) => prev.filter((s) => s.id !== id));
     setChapters((prev) => prev.filter((c) => c.subjectId !== id));
     setQuestions((prev) => prev.filter((q) => q.subjectId !== id));
-  
+
     if (subjectId === id) {
       const next = subjects.find((s) => s.id !== id);
-  
+
       if (next) {
         setSubjectId(next.id);
         const nextChapter = chapters.find((c) => c.subjectId === next.id);
         if (nextChapter) setChapterId(nextChapter.id);
       }
-  
+
       setScreen("subjects");
     }
-  
+
     setActionSubjectId(null);
   };
 
   const editChapter = (id: string) => {
     const target = chapters.find((c) => c.id === id);
     if (!target) return;
-  
+
     const title = prompt("목차명을 수정해줘.", target.title);
     if (!title?.trim()) return;
-  
+
     setChapters((prev) =>
       prev.map((c) => (c.id === id ? { ...c, title: title.trim() } : c))
     );
-  
+
     setActionChapterId(null);
   };
-  
+
   const deleteChapter = (id: string) => {
     if (!confirm("이 목차와 하위목차, 해당 문제들을 모두 삭제할까?")) return;
-  
+
     const deleteIds = [id, ...getDescendantChapterIds(id)];
-  
+
     setChapters((prev) => prev.filter((c) => !deleteIds.includes(c.id)));
     setQuestions((prev) => prev.filter((q) => !deleteIds.includes(q.chapterId)));
-  
+
     if (deleteIds.includes(chapterId)) {
       const next = chapters.find(
         (c) => c.subjectId === subjectId && !deleteIds.includes(c.id)
       );
-  
+
       if (next) setChapterId(next.id);
     }
-  
+
     setActionChapterId(null);
   };
-  
+
   const moveSubjectOrder = (id: string, direction: -1 | 1) => {
     setSubjects((prev) => {
       const index = prev.findIndex((s) => s.id === id);
       const targetIndex = index + direction;
-  
+
       if (index < 0 || targetIndex < 0 || targetIndex >= prev.length) {
         return prev;
       }
-  
+
       const next = [...prev];
       [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
       return next;
     });
-  
+
     setActionSubjectId(null);
   };
-  
+
   const moveChapterOrder = (id: string, direction: -1 | 1) => {
     const target = chapters.find((c) => c.id === id);
     if (!target) return;
-  
+
     setChapters((prev) => {
       const siblings = prev.filter(
         (c) => c.subjectId === target.subjectId && c.parentId === target.parentId
       );
-  
+
       const siblingIndex = siblings.findIndex((c) => c.id === id);
       const targetSibling = siblings[siblingIndex + direction];
-  
+
       if (!targetSibling) return prev;
-  
+
       const currentIndex = prev.findIndex((c) => c.id === id);
       const targetIndex = prev.findIndex((c) => c.id === targetSibling.id);
-  
+
       const next = [...prev];
       [next[currentIndex], next[targetIndex]] = [next[targetIndex], next[currentIndex]];
       return next;
     });
-  
+
     setActionChapterId(null);
   };
-  
+
   const moveChapter = (movingId: string, targetParentId: string | null) => {
     if (movingId === targetParentId) return;
-  
+
     const disabledIds = [movingId, ...getDescendantChapterIds(movingId)];
     if (targetParentId && disabledIds.includes(targetParentId)) return;
-  
+
     setChapters((prev) =>
       prev.map((c) =>
         c.id === movingId ? { ...c, parentId: targetParentId } : c
       )
     );
-  
+
     if (targetParentId) {
       setExpandedIds((prev) =>
         prev.includes(targetParentId) ? prev : [...prev, targetParentId]
       );
     }
-  
+
     setMovingChapterId(null);
     setActionChapterId(null);
   };
@@ -947,7 +950,7 @@ useEffect(() => {
   };
 
   const goHome = () => {
-    setScreen("subjects");
+    setScreen("home");
     setSubjectId("");
     setChapterId("");
     setQuestionId("");
@@ -965,11 +968,11 @@ useEffect(() => {
         setChapterId(current?.parentId ?? "");
         return;
       }
-  
+
       setScreen("subjects");
       return;
     }
-  
+
     if (screen === "questions") setScreen("chapters");
     if (screen === "detail") setScreen("questions");
   };
@@ -978,15 +981,15 @@ useEffect(() => {
   const deleteSelectedQuestion = () => {
     if (!selectedQuestion) return;
     if (!confirm("이 문제를 삭제할까?")) return;
-  
+
     const currentIndex = visibleQuestions.findIndex((q) => q.id === selectedQuestion.id);
     const remain = visibleQuestions.filter((q) => q.id !== selectedQuestion.id);
     const nextQuestion = remain[currentIndex] ?? remain[currentIndex - 1];
-  
+
     setQuestions((prev) => prev.filter((q) => q.id !== selectedQuestion.id));
-  
+
     setShowAnswer(false);
-  
+
     if (nextQuestion) {
       setQuestionId(nextQuestion.id);
       setScreen("detail");
@@ -999,79 +1002,63 @@ useEffect(() => {
     const cleanLawName = lawName.trim();
     const cleanArticleNo = articleNo.trim();
     const key = `${cleanLawName}-${cleanArticleNo}`;
-  
+
     if (lawCacheRef.current[key]) {
       setLawArticle(lawCacheRef.current[key]);
       setLawModalOpen(true);
       return;
     }
-  
+
     const res = await fetch(
       `/api/law-link?lawName=${encodeURIComponent(cleanLawName)}&articleNo=${encodeURIComponent(cleanArticleNo)}&t=${Date.now()}`,
       { cache: "no-store" }
     );
-  
+
     const data = await res.json();
-  
+
     if (data.success) {
       lawCacheRef.current[key] = data.article;
       setLawArticle(data.article);
       setLawModalOpen(true);
       return;
     }
-  
+
     alert("조문을 찾을 수 없습니다.");
+  };
+
+  useEffect(() => {
+    if (screen === "detail" && questionId) {
+      try { localStorage.setItem("lexdeck-last-question", questionId); } catch {}
+    }
+  }, [screen, questionId]);
+
+  const navigateStudyQuestion = (id: string) => {
+    const target = questions.find(q => q.id === id);
+    if (!target) return;
+    setSubjectId(target.subjectId); setChapterId(target.chapterId);
+    setCurrentParentId(chapters.find(c => c.id === target.chapterId)?.parentId ?? null);
+    setSearch(""); setQuestionId(id); setShowAnswer(false); setScreen("detail");
+  };
+  const navigateStudyChapter = (id: string) => {
+    const target = chapters.find(c => c.id === id);
+    if (!target) return;
+    setSubjectId(target.subjectId); setChapterId(id); setSearch(""); setShowAnswer(false);
+    setCurrentParentId(target.type === "folder" ? id : target.parentId);
+    setScreen(target.type === "folder" ? "chapters" : "questions");
   };
 
   return (
     <>
-    <main className="min-h-[100svh] bg-white text-[#111827]">
-        <section className="mx-auto min-h-[100svh] w-full max-w-none px-6 py-8 md:px-8 lg:px-10">
+    <main data-study-screen={screen} className="lex-app min-h-[100svh] bg-white text-[#111827]">
+        <section className="study-page mx-auto min-h-[100svh] w-full">
             <div className="min-h-[calc(100svh-64px)] bg-white">
-            {isStandalone && (
-            <button
-                onClick={() => window.location.reload()}
-                className="fixed bottom-[calc(64px+env(safe-area-inset-bottom))] right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
-                aria-label="새로고침"
-            >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M20 11A8 8 0 1 0 17.7 16.7"
-                    stroke="#0f2a5f"
-                    strokeWidth="2.1"
-                    strokeLinecap="round"
-                />
-                <path
-                    d="M20 4V11H13"
-                    stroke="#0f2a5f"
-                    strokeWidth="2.1"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-                </svg>
-            </button>
-            )}
 
-            {screen !== "subjects" && (
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="fixed bottom-[calc(116px+env(safe-area-inset-bottom))] right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full border border-[#e4e8f0] bg-white/90 shadow-[0_6px_18px_rgba(15,23,42,0.08)] backdrop-blur transition active:scale-95"
-                aria-label="목차 열기"
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M4 7h16M4 12h16M4 17h16"
-                    stroke="#0f2a5f"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            )}
+
+
 
             <div className="min-h-[calc(100svh-128px)]">
             <div className="min-w-0">
-        <MobileHeader
+        {screen !== "home" && (<StudyHeader
           chapterMode={screen === "chapters"}
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
           onHome={screen !== "subjects" ? goHome : undefined}
@@ -1087,7 +1074,7 @@ useEffect(() => {
           }
           title={
             screen === "subjects"
-              ? "정은이의 스터디룸"
+              ? "내 과목"
               : screen === "chapters"
               ? currentFolder?.title ?? selectedSubject?.name ?? "목차"
               : screen === "questions"
@@ -1110,7 +1097,8 @@ useEffect(() => {
                 ? (value) => setQuestionSortOrder(value)
                 : undefined
             }
-          />
+          />)}
+{screen === "home" && <StudyHome subjects={subjects} chapters={chapters} questions={questions} onOpen={navigateStudyQuestion} onSubject={selectSubject} onContents={() => window.dispatchEvent(new Event("lexdeck-open-contents"))} />}
 
             {screen === "subjects" && (
                 <div className="mt-6">
@@ -1118,7 +1106,7 @@ useEffect(() => {
                 <Empty text="등록된 과목이 없어." />
                 ) : (
                 subjects.map((s) => {
-               
+
               return (
                 <button
                     key={s.id}
@@ -1223,19 +1211,19 @@ useEffect(() => {
               ) : (
                 Object.entries(groupedQuestions).map(([groupChapterId, group]) => {
                     const groupChapter = chapters.find((c) => c.id === groupChapterId);
-                  
+
                     return (
                       <div key={groupChapterId} className="mb-5">
                         <p className="mb-2 mt-5 pl-3 text-[12px] font-bold tracking-[-0.03em] text-[#8a94a6]">
                             총 {group.length}문제
                         </p>
-                  
+
                         <div className="space-y-3">
                             {group.map((q) => {
                             const chapterQuestions = questions.filter(
                               (item) => item.chapterId === q.chapterId
                             );
-                            
+
                             const originalIndex = chapterQuestions.findIndex((item) => item.id === q.id);
 
                             return (
@@ -1244,7 +1232,7 @@ useEffect(() => {
                                 onClick={() => selectQuestion(q.id)}
                                 className={`w-full rounded-[20px] border px-4 py-4 text-left shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition active:scale-[0.995] ${
                                 getQuestionImportanceStars(q)
-                                  ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
+                                  ? "border-[#ece2bf] bg-[#fffdf6] shadow-[0_5px_16px_rgba(120,105,65,0.04)]"
                                   : "border-[#e4e8f0] bg-white"
                                 } ${q.memorized ? "opacity-40" : ""}`}
                             >
@@ -1259,33 +1247,33 @@ useEffect(() => {
                                       </span>
                                     ) : null}
                                     <div className="mb-2">
-                                        <span className="rounded-full bg-[#eef2f8] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#0f2a5f]">
+                                        <span className="rounded-full bg-[#f7f5ed] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#79683f]">
                                         Q{originalIndex + 1}
                                         </span>
                                     </div>
 
                                     {search ? (
                                         <p
-                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
-                                            getQuestionImportanceStars(q) ? "text-[#d95c5c]" : "text-[#111827]"
+                                            className={`text-[15px] font-medium leading-[1.85] tracking-[-0.02em] ${
+                                            getQuestionImportanceStars(q) ? "text-[#303236]" : "text-[#111827]"
                                             }`}
                                         >
                                             {highlightKeyword(stripHtml(q.textHtml), search)}
                                         </p>
                                         ) : (
                                             <JustifiedText
-                                            className={`text-[15px] font-semibold leading-[1.8] tracking-[-0.04em] ${
-                                              getQuestionImportanceStars(q) ? "text-[#d95c5c]" : "text-[#111827]"
+                                            className={`text-[15px] font-medium leading-[1.85] tracking-[-0.02em] ${
+                                              getQuestionImportanceStars(q) ? "text-[#303236]" : "text-[#111827]"
                                             }`}
                                             html={linkLawText(normalizeQuestionHtml(q.textHtml), q.disabledAutoLinks ?? [])}
                                           />
                                     )}
                                 </div>
-                  
+
                               </div>
                             </button>
                             );
-                          })} 
+                          })}
                         </div>
                       </div>
                     );
@@ -1297,7 +1285,12 @@ useEffect(() => {
 
             {screen === "detail" && (
             <div className="mt-5 w-full">
-                <MobileDetail
+                <div className="study-reading-controls">
+                <button type="button" aria-label="이전 문제" disabled={visibleQuestions.findIndex(q => q.id === questionId) <= 0} onClick={() => { const i = visibleQuestions.findIndex(q => q.id === questionId); if (i > 0) selectQuestion(visibleQuestions[i - 1].id); }}>‹ 이전</button>
+                <button type="button" aria-expanded={showAnswer} onClick={() => setShowAnswer(!showAnswer)}>{showAnswer ? "정답·해설 숨기기" : "정답·해설 보기"}</button>
+                <button type="button" aria-label="다음 문제" disabled={visibleQuestions.findIndex(q => q.id === questionId) >= visibleQuestions.length - 1} onClick={() => { const i = visibleQuestions.findIndex(q => q.id === questionId); if (i >= 0 && i < visibleQuestions.length - 1) selectQuestion(visibleQuestions[i + 1].id); }}>다음 ›</button>
+              </div>
+              <MobileDetail
                 question={selectedQuestion}
                 questions={visibleQuestions}
                 setQuestionId={setQuestionId}
@@ -1409,6 +1402,16 @@ useEffect(() => {
         />
       )}
     </main>
+<StudyNavigation subjects={subjects} chapters={chapters} questions={questions} screen={screen} subjectId={subjectId} chapterId={chapterId}
+        hidden={formOpen || subjectFormOpen || folderFormOpen || lawModalOpen || !!actionSubjectId || !!actionChapterId || !!movingChapterId}
+        onHome={goHome} onSubject={selectSubject} onChapter={navigateStudyChapter} onQuestion={navigateStudyQuestion}
+        onAddSubject={addSubject}
+        onAddQuestion={id => { const target = chapters.find(c => c.id === id); if (!target) return; setSubjectId(target.subjectId); setChapterId(id); setCurrentParentId(target.parentId); setSearch(""); setScreen("questions"); setEditingId(null); setFormOpen(true); }}
+        onAddFolder={(sid, parent) => { setSubjectId(sid); setFolderParentId(parent); setFolderFormOpen(true); }}
+        onAddChapter={(sid, parent, title) => { const id = uid(); setChapters(prev => [...prev, { id, subjectId: sid, parentId: parent, title, type: "chapter" }]); setSubjectId(sid); setChapterId(id); setCurrentParentId(parent); setSearch(""); setScreen("questions"); }}
+        onManageSubject={setActionSubjectId}
+        onManageChapter={id => { const target = chapters.find(c => c.id === id); if (target) setSubjectId(target.subjectId); setActionChapterId(id); }}
+      />
 
     {lawModalOpen && lawArticle && (
         <LawArticleModal
@@ -1492,210 +1495,7 @@ useEffect(() => {
 }
 
 
-function MobileHeader({
-    eyebrow,
-    title,
-    showBack,
-    onBack,
-    onAdd,
-    addLabel,
-    onDelete,
-    onHome,
-    onAddFolder,
-    chapterMode = false,
-    screenTitleFix = false,
-    sortOrder,
-    onSortChange,
-  }: {
-    eyebrow: string;
-    title: string;
-    showBack: boolean;
-    onBack: () => void;
-    onAdd: () => void;
-    addLabel: string;
-    onDelete?: () => void;
-    onHome?: () => void;
-    onAddFolder?: () => void;
-    chapterMode?: boolean;
-    screenTitleFix?: boolean;
-    sortOrder?: "latest" | "oldest";
-    onSortChange?: (value: "latest" | "oldest") => void;
-  }) {
-    if (chapterMode) {
-        return (
-            <header>
-            <div className="flex h-4 items-center justify-between">
-              <div className="flex min-w-0 items-center gap-2">
-                <p
-                  className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
-                  style={{
-                    transform: showBack ? "translateX(3px)" : "translateX(1px)",
-                  }}
-                >
-                  {eyebrow}
-                </p>
-              </div>
-          
-              {onHome && (
-                <button
-                  onClick={onHome}
-                  className="flex h-4 w-4 -translate-x-1 items-center justify-center text-[#a3abb8] active:scale-95"
-                  aria-label="홈"
-                >
-                  <HomeIcon size={12} />
-                </button>
-              )}
-            </div>
-      
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-0">
-                {showBack && (
-                  <button
-                    onClick={onBack}
-                    className="flex h-8 w-8 translate-x-[-10px] translate-y-[2.9px] items-center justify-center text-[#8a94a6]"
-                  >
-                    <ChevronLeft />
-                  </button>
-                )}
-      
-                {title && (
-                  <h1 className="translate-x-[0px] translate-y-[3px] truncate text-[20px] font-bold tracking-[-0.06em] text-[#0f2a5f]">
-                    {title}
-                  </h1>
-                )}
-              </div>
-      
-              <div className="flex shrink-0 items-center gap-2">
-                {onAddFolder && (
-                    <button
-                    onClick={onAddFolder}
-                    className="relative flex h-[30px] w-[34px] translate-y-[3.5px] items-center justify-center active:scale-95"
-                    aria-label="폴더 추가"
-                    >
-                    <FolderIcon size={18} color="#0f2a5f" />
-
-                    <span className="absolute bottom-[3px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#0f2a5f] text-white">
-                        <span className="translate-y-[-1px] text-[12px] font-bold leading-none">
-                            +
-                        </span>
-                    </span>
-                    </button>
-                )}
-
-                <button
-                    onClick={onAdd}
-                    className="flex h-[30px] w-[34px] translate-y-[3.5px] items-center justify-center active:scale-95"
-                    aria-label="목차 추가"
-                    >
-                    <ListAddIcon />
-                </button>
-              </div>
-            </div>
-          </header>
-        );
-      }
-  
-      return (
-        <header>
-          <div className="flex h-4 items-center justify-between">
-            <div className="flex min-w-0 items-center gap-2">
-              <p
-                  className="truncate text-[12px] font-semibold leading-none tracking-[0.34em] text-[#a3abb8]"
-                  style={{
-                  transform: showBack ? "translateX(3px)" : "translateX(1px)",
-                  }}
-              >
-                  {eyebrow}
-              </p>
-            </div>
-
-            {onHome && (
-                <button
-                onClick={onHome}
-                className="flex h-4 w-4 -translate-x-1 items-center justify-center text-[#a3abb8] active:scale-95"
-                aria-label="홈"
-                >
-                <HomeIcon size={12} />
-                </button>
-            )}
-            </div>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {showBack && (
-              <button
-                onClick={onBack}
-                className="flex h-8 w-6 translate-x-[-6px] translate-y-[3px] items-center justify-center text-[#8a94a6]"
-              >
-                <ChevronLeft />
-              </button>
-            )}
-  
-            {screenTitleFix ? (
-                <p className="translate-y-[3px] text-[14px] font-semibold tracking-[0.18em] text-[#a3abb8]">
-                    QUESTION
-                </p>
-                ) : (
-                title && (
-                    <h1 className="translate-x-[0px] translate-y-[3px] truncate text-[20px] font-bold tracking-[-0.06em] text-[#0f2a5f]">
-                    {title}
-                    </h1>
-                )
-            )}
-          </div>
-  
-          <div className="flex shrink-0 items-center gap-0.5">
-          {onSortChange && (
-            <div className="relative h-8 w-8 shrink-0 translate-y-[3px]">
-                <select
-                value={sortOrder}
-                onChange={(e) => onSortChange(e.target.value as "latest" | "oldest")}
-                className="absolute inset-0 z-10 h-8 w-8 cursor-pointer appearance-none opacity-0"
-                aria-label="정렬"
-                >
-                <option value="latest">최신순</option>
-                <option value="oldest">오래된순</option>
-                </select>
-
-                <div className="pointer-events-none flex h-8 w-8 items-center justify-center text-[#8a94a6]">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 8H20" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
-                    <circle cx="9" cy="8" r="2.7" fill="white" stroke="currentColor" strokeWidth="2.3" />
-                    <path d="M4 16H20" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" />
-                    <circle cx="15" cy="16" r="2.7" fill="white" stroke="currentColor" strokeWidth="2.3" />
-                </svg>
-                </div>
-            </div>
-            )}
-          {addLabel && (
-            <button
-                onClick={onAdd}
-                className={
-                addLabel === "수정"
-                    ? "flex h-8 w-8 translate-y-[3px] items-center justify-center text-[#4a4a4a] active:scale-95"
-                    : "h-[30px] shrink-0 translate-y-[3.5px] rounded-full bg-[#0f2a5f] px-3 text-[11px] font-semibold text-white active:scale-95"
-                }
-                aria-label={addLabel}
-            >
-                {addLabel === "수정" ? <EditIcon /> : addLabel}
-            </button>
-            )}
-
-            {onDelete && (
-            <button
-                onClick={onDelete}
-                className="flex h-8 w-8 translate-y-[3px] items-center justify-center text-[#c96b6b] active:scale-95"
-                aria-label="삭제"
-            >
-                <TrashIcon />
-            </button>
-            )}
-            </div>
-        </div>
-      </header>
-    );
-  }
-
-  function NavigationDrawer({
+function NavigationDrawer({
     subjects,
     selectedSubject,
     subjectChapters,
@@ -1736,8 +1536,8 @@ function MobileHeader({
         <aside className="absolute left-0 top-0 flex h-full w-[min(82vw,340px)] flex-col bg-white px-5 py-6 shadow-[16px_0_40px_rgba(15,23,42,0.12)]">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              
-              <p className="mt-1 text-[18px] font-extrabold tracking-[-0.05em] text-[#0f2a5f]">
+
+              <p className="mt-1 text-[18px] font-extrabold tracking-[-0.05em] text-[#79683f]">
                 목차
               </p>
             </div>
@@ -1763,7 +1563,7 @@ function MobileHeader({
                 <span className="h-[18px] w-[18px] rounded-md bg-[#e4e8f0]" />
               )}
 
-              <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-[#0f2a5f]">
+              <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-[#79683f]">
                 {selectedSubject?.name ?? "과목 선택"}
               </span>
 
@@ -1803,7 +1603,7 @@ function MobileHeader({
                             {subject.name}
                           </span>
                           {selectedSubject?.id === subject.id && (
-                            <span className="text-[12px] font-black text-[#0f2a5f]">✓</span>
+                            <span className="text-[12px] font-black text-[#79683f]">✓</span>
                           )}
                         </button>
                       ))
@@ -1898,7 +1698,7 @@ function MobileHeader({
                 </span>
                 <span
                   className={`min-w-0 flex-1 truncate text-[13px] ${
-                    selected ? "font-extrabold text-[#0f2a5f]" : "font-semibold text-[#47505f]"
+                    selected ? "font-extrabold text-[#79683f]" : "font-semibold text-[#47505f]"
                   }`}
                 >
                   {chapter.title}
@@ -1947,7 +1747,7 @@ function MobileHeader({
           const selected = selectedId === c.id;
           const isFolder = c.type === "folder";
           const isTop = depth === 0;
-  
+
           return (
             <div key={c.id}>
               <div
@@ -1962,12 +1762,12 @@ function MobileHeader({
                       didLongPress.current = false;
                       return;
                     }
-                  
+
                     if (hasChildren) {
                       onToggle(c.id);
                       return;
                     }
-                  
+
                     onSelect(c.id);
                   }}
                   onPointerDown={() => {
@@ -1994,7 +1794,7 @@ function MobileHeader({
                     onOpenAction(c.id);
                   }}
                   className={`min-w-0 flex-1 touch-none select-none truncate text-left tracking-[-0.03em] ${
-                    selected ? "text-[#0f2a5f]" : "text-[#303236]"
+                    selected ? "text-[#79683f]" : "text-[#303236]"
                   } ${isFolder ? "text-[15px]" : isTop ? "text-[17px]" : "text-[15px]"} ${
                     isFolder ? "font-semibold" : selected ? "font-bold" : isTop ? "font-semibold" : "font-medium"
                   }`}
@@ -2006,18 +1806,18 @@ function MobileHeader({
                 >
                   <span className={isFolder ? "flex min-w-0 items-center gap-3" : "flex min-w-0 items-center gap-2"}>
                     {isFolder && <FolderIcon color={c.color || "#4b6cb7"} />}
-  
+
                     <span className="truncate">{c.title}</span>
                   </span>
                 </button>
-  
+
                 {hasChildren ? (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onToggle(c.id);
                     }}
-                    className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#0f2a5f] text-white active:scale-95"
+                    className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#8a7544] text-white active:scale-95"
                     aria-label={open ? "접기" : "펼치기"}
                   >
                     <ChevronToggle open={open} />
@@ -2026,7 +1826,7 @@ function MobileHeader({
                   <span className="ml-2 h-7 w-7 shrink-0" />
                 )}
               </div>
-  
+
               {hasChildren && open && (
                 <div className={isTop ? "border-t border-[#e5e7eb]" : ""}>
                   {render(c.id, depth + 1)}
@@ -2036,7 +1836,7 @@ function MobileHeader({
           );
         });
     };
-  
+
     return <div>{render(rootParentId, 0)}</div>;
   }
 
@@ -2413,11 +2213,11 @@ function MobileHeader({
       const lawClick = interactive ? handleLawClick(pageQuestion) : undefined;
 
       return (
-        <div className="min-h-[calc(100svh-120px)]">
+        <div className="min-h-[calc(100svh-240px)]">
           <section
             className={`relative rounded-[22px] border px-5 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)] ${
               pageImportanceStars
-                ? "border-[#b9c9ed] bg-[#f8fbff] shadow-[0_5px_16px_rgba(15,42,95,0.10)]"
+                ? "border-[#ece2bf] bg-[#fffdf6] shadow-[0_5px_16px_rgba(120,105,65,0.04)]"
                 : "border-[#e4e8f0] bg-white"
             }`}
           >
@@ -2434,8 +2234,8 @@ function MobileHeader({
                     normalizeQuestionHtml(pageQuestion.textHtml),
                     pageQuestion.disabledAutoLinks ?? []
                   )}
-                  className={`w-full text-[17px] font-bold leading-[1.85] tracking-[-0.05em] ${
-                    getQuestionImportanceStars(pageQuestion) ? "text-[#d95c5c]" : "text-[#111827]"
+                  className={`w-full text-[18px] font-medium leading-[1.95] tracking-[-0.02em] ${
+                    getQuestionImportanceStars(pageQuestion) ? "text-[#303236]" : "text-[#111827]"
                   }`}
                   onClick={lawClick}
                 />
@@ -2457,7 +2257,7 @@ function MobileHeader({
                   <span className="relative flex h-7 w-7 items-center justify-center">
                     <StarIcon active={Boolean(pageImportanceStars)} size={22} />
                     {pageImportanceStars ? (
-                      <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#0f2a5f] px-[3px] text-[8px] font-black leading-none text-white">
+                      <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#8a7544] px-[3px] text-[8px] font-black leading-none text-white">
                         {pageImportanceStars}
                       </span>
                     ) : null}
@@ -2472,7 +2272,7 @@ function MobileHeader({
                   }}
                   className={`flex h-7 w-7 items-center justify-center rounded-full border transition-all ${
                     pageQuestion.memorized
-                      ? "border-[#0f2a5f] bg-[#0f2a5f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
+                      ? "border-[#bda974] bg-[#8a7544] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
                       : "border-[#dce2ee] bg-[#f8fafc]"
                   }`}
                   aria-label="암기완료"
@@ -2500,7 +2300,7 @@ function MobileHeader({
                   className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
                     pageQuestion.answer === "O"
                       ? "bg-[#edf7f0] text-[#4d8b63]"
-                      : "bg-[#fff0f0] text-[#d95c5c]"
+                      : "bg-[#fff0f0] text-[#303236]"
                   }`}
                 >
                   {pageQuestion.answer}
@@ -2528,7 +2328,7 @@ function MobileHeader({
                         <div key={index} className="rounded-2xl bg-[#f5f6fa] px-4 py-3">
                           <div className="-ml-1 flex items-center gap-2">
                             {point.category && (
-                              <span className="rounded-full bg-[#e7ecf5] px-2 py-1 text-[10px] font-bold text-[#0f2a5f]">
+                              <span className="rounded-full bg-[#faf4df] px-2 py-1 text-[10px] font-bold text-[#79683f]">
                                 {point.category}
                               </span>
                             )}
@@ -2576,7 +2376,7 @@ function MobileHeader({
     return (
       <div
         ref={pagerRef}
-        className="relative min-h-[calc(100svh-120px)] w-full overflow-x-hidden overscroll-y-contain"
+        className="relative min-h-[calc(100svh-240px)] w-full overflow-x-hidden overscroll-y-contain"
         style={{
           touchAction: pagerDragging ? "pan-x" : "pan-y",
           WebkitOverflowScrolling: "touch",
@@ -2677,7 +2477,7 @@ function QuestionForm({
       const [disabledAutoLinks, setDisabledAutoLinks] = useState<string[]>(
         question?.disabledAutoLinks ?? []
       );
-      
+
       const addExtraPoint = () => {
         setExtraPoints((prev) => [
           ...prev,
@@ -2688,7 +2488,7 @@ function QuestionForm({
           },
         ]);
       };
-      
+
       const updateExtraPoint = (
         index: number,
         key: keyof ExtraPoint,
@@ -2700,13 +2500,13 @@ function QuestionForm({
           )
         );
       };
-      
+
       const removeExtraPoint = (index: number) => {
         const snapshots = extraPoints.map((point, i) => ({ ...point, descriptionHtml: extraPointRefs.current[i]?.innerHTML ?? point.descriptionHtml }));
     setExtraPoints(snapshots.filter((_, i) => i !== index));
       };
     const [customColors, setCustomColors] = useState<string[]>([]);
-    
+
     const textRef = useRef<HTMLDivElement | null>(null);
     const explanationRef = useRef<HTMLDivElement | null>(null);
 
@@ -2749,13 +2549,13 @@ const saveCustomColors = (next: string[]) => {
 
 const runCommand = (command: string, value?: string) => {
     restoreSelection();
-  
+
     document.execCommand(command, false, value);
-  
+
     savedSelectionRef.current = null;
   };
-      
-  
+
+
   const insertLink = (url: string) => {
     restoreSelection();
     document.execCommand("createLink", false, url);
@@ -2780,74 +2580,74 @@ const runCommand = (command: string, value?: string) => {
   const handleDisableAutoLinkInEditor = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const disableButton = target.closest("[data-disable-law-link]") as HTMLElement | null;
-  
+
     if (!disableButton) return;
-  
+
     e.preventDefault();
     e.stopPropagation();
-  
+
     const key = disableButton.dataset.autoLinkKey;
     if (!key) return;
-  
+
     setDisabledAutoLinks((prev) =>
       prev.includes(key) ? prev : [...prev, key]
     );
-  
+
     const lawLink = disableButton.closest("[data-law-name][data-article-no]") as HTMLElement | null;
     if (!lawLink) return;
-  
+
     const text = lawLink.textContent?.replace("×", "").trim() ?? "";
     lawLink.replaceWith(document.createTextNode(text));
   };
 
   const unlinkLawLink = () => {
     const selection = window.getSelection();
-  
+
     if (!selection || selection.rangeCount === 0) {
       alert("해제할 링크 안에 커서를 두거나 링크를 선택해줘.");
       return;
     }
-  
+
     const range = selection.getRangeAt(0);
     const node = selection.anchorNode;
     const element = node instanceof HTMLElement ? node : node?.parentElement;
-  
+
     // 1. 직접 추가한 URL 링크 해제
     const activeAnchor = element?.closest("a") as HTMLAnchorElement | null;
-  
+
     const selectedHtml = document.createElement("div");
     selectedHtml.appendChild(range.cloneContents());
-  
+
     const hasSelectedAnchor = !!selectedHtml.querySelector("a");
-  
+
     if (activeAnchor || hasSelectedAnchor) {
       document.execCommand("unlink");
       return;
     }
-  
+
     // 2. 법령 링크 해제
     const activeLawButton = element?.closest(
       "[data-law-name][data-article-no]"
     ) as HTMLElement | null;
-  
+
     if (activeLawButton) {
       const text = activeLawButton.textContent ?? "";
       activeLawButton.replaceWith(document.createTextNode(text));
       return;
     }
-  
+
     // 3. 드래그한 범위 안의 법령 링크 해제
     const root =
       range.commonAncestorContainer instanceof HTMLElement
         ? range.commonAncestorContainer
         : range.commonAncestorContainer.parentElement;
-  
+
     const lawLinks = Array.from(
       root?.querySelectorAll("[data-law-name][data-article-no]") ?? []
     ) as HTMLElement[];
-  
+
     const selectedLawLinks = lawLinks.filter((el) => range.intersectsNode(el));
-  
+
     if (selectedLawLinks.length > 0) {
       selectedLawLinks.forEach((el) => {
         const text = el.textContent ?? "";
@@ -2855,38 +2655,38 @@ const runCommand = (command: string, value?: string) => {
       });
       return;
     }
-  
+
     alert("해제할 링크 안에 커서를 두거나 링크를 선택해줘.");
   };
 
   const unlinkSelectedAutoLawLink = () => {
     const selection = window.getSelection();
-  
+
     if (!selection || selection.rangeCount === 0) {
       alert("자동링크를 해제할 부분을 드래그해줘.");
       return;
     }
-  
+
     const range = selection.getRangeAt(0);
-  
+
     const container = document.createElement("div");
     container.appendChild(range.cloneContents());
-  
+
     const links = Array.from(
       container.querySelectorAll("[data-auto-link-key]")
     ) as HTMLElement[];
-  
+
     const nextKeys = links
       .map((el) => el.dataset.autoLinkKey)
       .filter(Boolean) as string[];
-  
+
     const selectedText = selection.toString().trim();
-  
+
     const regex =
       /(^|[^가-힣A-Za-z0-9·ㆍ「」])([가-힣A-Za-z0-9·ㆍ「」]{1,60}?(?:법률|특례법|소송법|등기법|교통법|심판법|기본법|사업법|보호법|촉진법|민법|형법|법|령|규칙|규정|조례))\s*제\s*(\d+)조(?:의\s*(\d+))?/g;
-  
+
     let match;
-  
+
     while ((match = regex.exec(selectedText)) !== null) {
       const lawName = match[2];
       const articleNo = match[3];
@@ -2900,28 +2700,28 @@ const runCommand = (command: string, value?: string) => {
 
       nextKeys.push(makeAutoLinkKey(lawName, finalArticleNo, text));
     }
-  
+
     if (nextKeys.length === 0) {
       alert("선택한 부분에서 자동링크를 찾지 못했어.");
       return;
     }
-  
+
     setDisabledAutoLinks((prev) =>
       Array.from(new Set([...prev, ...nextKeys]))
     );
-  
+
     // 실제 span 제거
     const selectedLinks = Array.from(
       document.querySelectorAll("[data-auto-link-key]")
     ) as HTMLElement[];
-  
+
     selectedLinks.forEach((el) => {
       const key = el.dataset.autoLinkKey;
-  
+
       if (!key || !nextKeys.includes(key)) return;
-  
+
       const text = el.textContent ?? "";
-  
+
       el.replaceWith(document.createTextNode(text));
     });
   };
@@ -3126,7 +2926,7 @@ function EditorBox({
     onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   }) {
     const innerRef = useRef<HTMLDivElement | null>(null);
-  
+
     useEffect(() => {
       if (!innerRef.current) return;
       innerRef.current.innerHTML = defaultHtml;
@@ -3145,27 +2945,27 @@ function EditorBox({
       e.stopPropagation();
       window.open(anchor.href, "_blank", "noopener,noreferrer");
     };
-  
+
     const insertSoftBreak = () => {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) return;
-      
+
         const range = selection.getRangeAt(0);
         range.deleteContents();
-      
+
         const br = document.createElement("br");
         const spacer = document.createTextNode("\u200B");
-      
+
         range.insertNode(spacer);
         range.insertNode(br);
-      
+
         range.setStartAfter(spacer);
         range.setEndAfter(spacer);
-      
+
         selection.removeAllRanges();
         selection.addRange(range);
     };
-  
+
     return (
       <div
         ref={(el) => {
@@ -3250,7 +3050,7 @@ function ChevronToggle({ open }: { open: boolean }) {
   }) {
 
     if (!subject) return null;
-  
+
     return (
       <div onClick={onClose} className="fixed inset-0 z-50 flex items-end bg-black/25">
         <div
@@ -3292,22 +3092,22 @@ function ChevronToggle({ open }: { open: boolean }) {
                 </div>
             </div>
           </div>
-  
+
           <div className="mt-5 space-y-2">
             <button
               onClick={onEdit}
-              className="h-12 w-full rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
             >
               과목 수정
             </button>
-  
+
             <button
               onClick={onDelete}
               className="h-12 w-full rounded-2xl bg-[#fdeeee] text-[13px] font-bold text-[#b42318]"
             >
               과목 삭제
             </button>
-  
+
             <button
               onClick={onClose}
               className="h-12 w-full rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
@@ -3340,7 +3140,7 @@ function ChevronToggle({ open }: { open: boolean }) {
     onDelete: () => void;
   }) {
     if (!chapter) return null;
-  
+
     return (
       <div onClick={onClose} className="fixed inset-0 z-50 flex items-end bg-black/25">
         <div
@@ -3382,36 +3182,36 @@ function ChevronToggle({ open }: { open: boolean }) {
                 </div>
             </div>
             </div>
-  
+
           <div className="mt-5 space-y-2">
             <button
               onClick={onAddChild}
-              className="h-12 w-full rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
             >
               하위목차 추가
             </button>
-  
+
             <button
               onClick={onEdit}
-              className="h-12 w-full rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
             >
               목차 수정
             </button>
-  
+
             <button
               onClick={onMove}
-              className="h-12 w-full rounded-2xl bg-[#eef2f8] text-[13px] font-bold text-[#0f2a5f]"
+              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
             >
               목차 이동
             </button>
-  
+
             <button
               onClick={onDelete}
               className="h-12 w-full rounded-2xl bg-[#fdeeee] text-[13px] font-bold text-[#b42318]"
             >
               목차 삭제
             </button>
-  
+
             <button
               onClick={onClose}
               className="h-12 w-full rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
@@ -3423,7 +3223,7 @@ function ChevronToggle({ open }: { open: boolean }) {
       </div>
     );
   }
-  
+
   function MoveChapterSheet({
     chapters,
     movingId,
@@ -3442,7 +3242,7 @@ function ChevronToggle({ open }: { open: boolean }) {
         .filter((c) => c.parentId === parentId)
         .map((c) => {
           const disabled = disabledIds.includes(c.id);
-  
+
           return (
             <div key={c.id}>
               <button
@@ -3455,13 +3255,13 @@ function ChevronToggle({ open }: { open: boolean }) {
               >
                 {c.title}
               </button>
-  
+
               {render(c.id, depth + 1)}
             </div>
           );
         });
     };
-  
+
     return (
       <div onClick={onClose} className="fixed inset-0 z-50 flex items-end bg-black/25">
         <div
@@ -3471,18 +3271,18 @@ function ChevronToggle({ open }: { open: boolean }) {
           <p className="text-[16px] font-bold tracking-[-0.03em] text-[#111827]">
             목차 이동
           </p>
-  
+
           <div className="mt-5">
             <button
               onClick={() => onMove(movingId, null)}
-              className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#0f2a5f]"
+              className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#79683f]"
             >
               최상위 목차로 이동
             </button>
-  
+
             {render(null, 0)}
           </div>
-  
+
           <button
             onClick={onClose}
             className="mt-5 h-12 w-full rounded-2xl border border-[#dce2ee] text-[13px] font-bold text-[#596275]"
@@ -3530,22 +3330,22 @@ function ChevronToggle({ open }: { open: boolean }) {
       "#f29cc0",
       "#8b95a7",
     ];
-  
+
     const [name, setName] = useState("");
     const [color, setColor] = useState("#4b6cb7");
-  
+
     return (
       <div className="fixed inset-0 z-50 flex items-end bg-black/25">
         <div className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
           <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
             폴더 추가
           </p>
-  
+
           <div className="mt-5">
             <p className="mb-2 text-[12px] font-bold text-[#596275]">
               폴더명
             </p>
-  
+
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -3553,12 +3353,12 @@ function ChevronToggle({ open }: { open: boolean }) {
               className="h-11 w-full rounded-2xl border border-[#dce2ee] px-4 text-[14px] outline-none"
             />
           </div>
-  
+
           <div className="mt-5">
             <p className="mb-3 text-[12px] font-bold text-[#596275]">
               색상
             </p>
-  
+
             <div className="flex flex-wrap gap-3">
               {presetColors.map((preset) => (
                 <button
@@ -3572,7 +3372,7 @@ function ChevronToggle({ open }: { open: boolean }) {
                 />
               ))}
             </div>
-  
+
             <div className="mt-4 flex items-center gap-2">
               <input
                 type="color"
@@ -3580,7 +3380,7 @@ function ChevronToggle({ open }: { open: boolean }) {
                 onChange={(e) => setColor(e.target.value)}
                 className="h-10 w-12 rounded-xl border border-[#dce2ee]"
               />
-  
+
               <input
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
@@ -3588,7 +3388,7 @@ function ChevronToggle({ open }: { open: boolean }) {
               />
             </div>
           </div>
-  
+
           <div className="mt-6 flex gap-2">
             <button
               onClick={onClose}
@@ -3596,17 +3396,17 @@ function ChevronToggle({ open }: { open: boolean }) {
             >
               취소
             </button>
-  
+
             <button
               onClick={() => {
                 if (!name.trim()) return;
-  
+
                 onSave({
                   name: name.trim(),
                   color,
                 });
               }}
-              className="h-11 flex-1 rounded-2xl bg-[#0f2a5f] text-[13px] font-bold text-white"
+              className="h-11 flex-1 rounded-2xl bg-[#8a7544] text-[13px] font-bold text-white"
             >
               저장
             </button>
@@ -3635,22 +3435,22 @@ function ChevronToggle({ open }: { open: boolean }) {
       "#f29cc0",
       "#8b95a7",
     ];
-  
+
     const [name, setName] = useState(subject?.name ?? "");
     const [color, setColor] = useState(subject?.color ?? "#4b6cb7");
-  
+
     return (
       <div className="fixed inset-0 z-50 flex items-end bg-black/25">
         <div className="mx-auto w-full max-w-[520px] rounded-t-[24px] bg-white px-5 pt-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
           <p className="text-[17px] font-bold tracking-[-0.03em] text-[#111827]">
             {subject ? "과목 수정" : "과목 추가"}
           </p>
-  
+
           <div className="mt-5">
             <p className="mb-2 text-[12px] font-bold text-[#596275]">
               과목명
             </p>
-  
+
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -3658,12 +3458,12 @@ function ChevronToggle({ open }: { open: boolean }) {
               className="h-11 w-full rounded-2xl border border-[#dce2ee] px-4 text-[14px] outline-none"
             />
           </div>
-  
+
           <div className="mt-5">
             <p className="mb-3 text-[12px] font-bold text-[#596275]">
               색상
             </p>
-  
+
             <div className="flex flex-wrap gap-3">
               {presetColors.map((preset) => (
                 <button
@@ -3679,7 +3479,7 @@ function ChevronToggle({ open }: { open: boolean }) {
                 />
               ))}
             </div>
-  
+
             <div className="mt-4 flex items-center gap-2">
               <input
                 type="color"
@@ -3687,7 +3487,7 @@ function ChevronToggle({ open }: { open: boolean }) {
                 onChange={(e) => setColor(e.target.value)}
                 className="h-10 w-12 rounded-xl border border-[#dce2ee]"
               />
-  
+
               <input
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
@@ -3695,7 +3495,7 @@ function ChevronToggle({ open }: { open: boolean }) {
               />
             </div>
           </div>
-  
+
           <div className="mt-6 flex gap-2">
             <button
               onClick={onClose}
@@ -3703,17 +3503,17 @@ function ChevronToggle({ open }: { open: boolean }) {
             >
               취소
             </button>
-  
+
             <button
               onClick={() => {
                 if (!name.trim()) return;
-  
+
                 onSave({
                   name: name.trim(),
                   color,
                 });
               }}
-              className="h-11 flex-1 rounded-2xl bg-[#0f2a5f] text-[13px] font-bold text-white"
+              className="h-11 flex-1 rounded-2xl bg-[#8a7544] text-[13px] font-bold text-white"
             >
               저장
             </button>
@@ -3793,8 +3593,8 @@ function ChevronToggle({ open }: { open: boolean }) {
             strokeLinecap="round"
           />
         </svg>
-  
-        <span className="absolute bottom-[1px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#0f2a5f] text-white">
+
+        <span className="absolute bottom-[1px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#8a7544] text-white">
             <span className="translate-y-[-1px] text-[12px] font-bold leading-none">
                 +
             </span>
@@ -3819,7 +3619,7 @@ function ChevronToggle({ open }: { open: boolean }) {
           stroke="currentColor"
           strokeWidth="2"
         />
-  
+
         <path
           d="M20 20L17 17"
           stroke="currentColor"
@@ -3921,28 +3721,29 @@ function ChevronToggle({ open }: { open: boolean }) {
         className="fixed inset-0 z-[70] flex items-end bg-black/25 backdrop-blur-[2px]"
       >
         <div
+          role="dialog" aria-modal="true" aria-label="법령 조문"
           onClick={(e) => e.stopPropagation()}
           className="mx-auto max-h-[78svh] w-full max-w-[720px] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
         >
           <div className="flex items-start justify-between">
-            <span className="ml-1 translate-y-[4px] rounded-full bg-[#4b6cb7] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-white shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
+            <span className="ml-1 translate-y-[4px] rounded-full bg-[#f6e7ad] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#79683f] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
               {article.law_name}
             </span>
-  
-            <button
+
+            <button aria-label="법령창 닫기"
               onClick={onClose}
               className="flex h-9 w-9 items-center justify-center rounded-full border border-[#dce2ee] bg-white text-[22px] leading-none text-[#8a94a6]"
             >
               ×
             </button>
           </div>
-  
+
           <h2 className="mt-5 translate-x-[8px] text-[21px] font-extrabold leading-snug tracking-[-0.06em] text-[#111827]">
             제{formatArticleNo(article.article_no)}
             {article.article_title ? `(${article.article_title})` : ""}
           </h2>
-  
-          <div className="mt-6 rounded-[22px] bg-[#f6f7fa] px-5 py-5">
+
+          <div className="mt-6 rounded-[22px] bg-[#faf9f4] px-5 py-5">
           <div className="space-y-3">
             {article.article_text
                 .split("\n")
@@ -3958,13 +3759,13 @@ function ChevronToggle({ open }: { open: boolean }) {
                 ))}
             </div>
           </div>
-  
+
           {article.source_url && (
             <a
               href={article.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 block text-right text-[13px] font-bold text-[#0f2a5f]"
+              className="mt-5 block text-right text-[13px] font-bold text-[#79683f]"
             >
               국가법령정보센터에서 보기
             </a>
