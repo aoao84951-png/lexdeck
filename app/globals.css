@@ -342,3 +342,8 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-explanation p.text-\[\#8a94a6\] { color: #978b70; }
 .study-explanation .bg-\[\#e5e7eb\] { background: #eee9db; }
 .study-explanation .text-\[\#596275\] { color: #686354; }
+
+/* One native vertical scroll surface; horizontal study swipes remain local. */
+.lex-app[data-study-screen="detail"] .study-detail-viewport { height: auto; min-height: calc(100dvh - 190px); overflow: clip; touch-action: pan-y; }
+.study-settings-panel { width: 260px; max-width: calc(100vw - 40px); max-height: calc(100dvh - 150px); overflow-y: auto; }
+.study-settings-panel hr { border: 0; border-top: 1px solid #eee9db; margin: 8px 0; }

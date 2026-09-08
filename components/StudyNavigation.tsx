@@ -19,11 +19,11 @@ export default function StudyNavigation(props:Props){
  useEffect(()=>{const contents=()=>setPanel('contents');const close=()=>setPanel(null);window.addEventListener('lexdeck-open-contents',contents);window.addEventListener('popstate',close);return()=>{window.removeEventListener('lexdeck-open-contents',contents);window.removeEventListener('popstate',close);};},[]);
  useEffect(()=>{
   if(!panel||props.hidden)return;
-  const previous=document.activeElement as HTMLElement|null;const main=document.querySelector<HTMLElement>('.lex-app');const oldOverflow=main?.style.overflow;
+  const previous=document.activeElement as HTMLElement|null;const main=document.querySelector<HTMLElement>('.lex-app');const oldOverflow=main?.style.overflow;const html=document.documentElement;const oldHtmlOverflow=html.style.overflow;html.style.overflow='hidden';
   if(main)main.style.overflow='hidden';
   root.current?.querySelector<HTMLButtonElement>('[aria-label="메뉴 닫기"]')?.focus({preventScroll:true});
   const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setPanel(null);return;}if(e.key==='Tab'&&root.current){const nodes=Array.from(root.current.querySelectorAll<HTMLElement>('button,input,select')).filter(el=>!(el as HTMLButtonElement).disabled);const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
-  document.addEventListener('keydown',key);return()=>{if(main)main.style.overflow=oldOverflow||'';document.removeEventListener('keydown',key);(trigger.current||previous)?.focus({preventScroll:true});};
+  document.addEventListener('keydown',key);return()=>{html.style.overflow=oldHtmlOverflow;if(main)main.style.overflow=oldOverflow||'';document.removeEventListener('keydown',key);(trigger.current||previous)?.focus({preventScroll:true});};
  },[panel,props.hidden]);
  const navigate=(run:()=>void)=>{close();run();};
  const toggle=(id:string)=>setExpanded(value=>value.includes(id)?value.filter(x=>x!==id):[...value,id]);

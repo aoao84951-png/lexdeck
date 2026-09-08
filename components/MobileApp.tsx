@@ -303,6 +303,7 @@ export default function MobileApp() {
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
 
+  const [onlyUnmemorized,setOnlyUnmemorized]=useState(false);
   const [screen, setScreen] = useState<Screen>("home");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
@@ -465,95 +466,7 @@ export default function MobileApp() {
     setIsStandalone(standalone);
   }, []);
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtmlOverscrollX = html.style.overscrollBehaviorX;
-    const prevHtmlOverscrollY = html.style.overscrollBehaviorY;
-    const prevBodyOverscrollX = body.style.overscrollBehaviorX;
-    const prevBodyOverscrollY = body.style.overscrollBehaviorY;
-    const prevHtmlOverflow = html.style.overflow;
-    const prevBodyOverflow = body.style.overflow;
-    const prevBodyPosition = body.style.position;
-    const prevBodyWidth = body.style.width;
-    let lastTouchY = 0;
-    let isSystemNavigationGesture = false;
 
-    html.style.overscrollBehaviorX = "auto";
-    html.style.overscrollBehaviorY = "none";
-    body.style.overscrollBehaviorX = "auto";
-    body.style.overscrollBehaviorY = "none";
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.width = "100%";
-
-    const findScrollableParent = (target: EventTarget | null) => {
-      let element = target as HTMLElement | null;
-
-      while (element && element !== body && element !== html) {
-        const style = window.getComputedStyle(element);
-        const canScrollY =
-          /(auto|scroll)/.test(style.overflowY) &&
-          element.scrollHeight > element.clientHeight;
-
-        if (canScrollY) return element;
-
-        element = element.parentElement;
-      }
-
-      return null;
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      const touch = event.touches[0];
-      lastTouchY = touch?.clientY ?? 0;
-      isSystemNavigationGesture = touch
-        ? isSystemNavigationEdge(touch.clientX, window.innerWidth)
-        : false;
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (isSystemNavigationGesture) return;
-      if ((event.target as Element | null)?.closest?.("a[href]")) return;
-
-      const currentY = event.touches[0]?.clientY ?? lastTouchY;
-      const deltaY = currentY - lastTouchY;
-      lastTouchY = currentY;
-
-      const scrollable = findScrollableParent(event.target);
-
-      if (!scrollable) {
-        event.preventDefault();
-        return;
-      }
-
-      const atTop = scrollable.scrollTop <= 0;
-      const atBottom =
-        Math.ceil(scrollable.scrollTop + scrollable.clientHeight) >=
-        scrollable.scrollHeight;
-
-      if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
-        event.preventDefault();
-      }
-    };
-
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
-    document.addEventListener("touchmove", handleTouchMove, { passive: false });
-
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-      html.style.overscrollBehaviorX = prevHtmlOverscrollX;
-      html.style.overscrollBehaviorY = prevHtmlOverscrollY;
-      body.style.overscrollBehaviorX = prevBodyOverscrollX;
-      body.style.overscrollBehaviorY = prevBodyOverscrollY;
-      html.style.overflow = prevHtmlOverflow;
-      body.style.overflow = prevBodyOverflow;
-      body.style.position = prevBodyPosition;
-      body.style.width = prevBodyWidth;
-    };
-  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -636,6 +549,7 @@ export default function MobileApp() {
     const keyword = normalizeSearch(search);
 
     const filtered = questions.filter((q) => {
+      if (onlyUnmemorized && q.memorized) return false;
       const subject = subjects.find((s) => s.id === q.subjectId);
       const chapter = chapters.find((c) => c.id === q.chapterId);
 
@@ -667,7 +581,7 @@ export default function MobileApp() {
       if (questionSortOrder === "oldest") return aIndex - bIndex;
       return bIndex - aIndex;
     });
-  }, [search, questions, subjects, chapters, chapterId, questionSortOrder]);
+  }, [search, questions, subjects, chapters, chapterId, questionSortOrder, onlyUnmemorized]);
 
   const groupedQuestions = useMemo(() => {
     return visibleQuestions.reduce(
@@ -1000,6 +914,7 @@ export default function MobileApp() {
   }, [screen, questionId]);
 
   const navigateStudyQuestion = (id: string) => {
+    setOnlyUnmemorized(false);
     const target = questions.find(q => q.id === id);
     if (!target) return;
     setSubjectId(target.subjectId); setChapterId(target.chapterId);
@@ -1026,10 +941,18 @@ export default function MobileApp() {
           display: none;
         }
       `}</style>
-      <main data-study-screen={screen} className="lex-app mobile-scrollbar-hide fixed inset-0 overflow-y-auto overscroll-y-none bg-white text-[#111827] [touch-action:auto]">
+      <main data-study-screen={screen} className="lex-app mobile-scrollbar-hide min-h-dvh bg-white text-[#111827] [touch-action:auto]">
         <section className="study-page mx-auto min-h-[100svh] w-full bg-white">
 
           {screen !== "home" && (<StudyHeader
+            unmemorized={onlyUnmemorized}
+            onToggleView={screen === "detail" || screen === "questions" ? () => {
+              const next = !onlyUnmemorized; setOnlyUnmemorized(next);
+              if (next && screen === "detail" && selectedQuestion?.memorized) {
+                const remaining = visibleQuestions.find(q=>!q.memorized);
+                if (remaining) {setQuestionId(remaining.id);setShowAnswer(false);} else setScreen("questions");
+              }
+            } : undefined}
             chapterMode={screen === "chapters"}
             addLabel={screen === "detail" ? "수정" : "+ 추가"}
             onHome={screen !== "subjects" ? goHome : undefined}
@@ -1938,7 +1861,7 @@ function MobileDetail({
     const handleLawClick = createLawClickHandler(displayQuestion);
 
     return (
-      <div className="mobile-scrollbar-hide h-full overflow-y-auto overscroll-y-none pb-3 [touch-action:pan-y]">
+      <div className="mobile-scrollbar-hide pb-3 [touch-action:pan-y]">
         <section
           className={`relative rounded-[22px] border px-5 py-5 ${
             currentImportanceStars
@@ -2138,7 +2061,7 @@ function MobileDetail({
       )}
 
       <div
-        className={`absolute inset-0 will-change-transform ${
+        className={`relative w-full will-change-transform ${
           detailSwipeAnimating
             ? "transition-transform duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
             : ""

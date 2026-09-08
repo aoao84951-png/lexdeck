@@ -295,6 +295,7 @@ export default function DesktopApp() {
   const [chapters, setChapters] = useState<Chapter[]>(initialChapters);
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
 
+  const [onlyUnmemorized,setOnlyUnmemorized]=useState(false);
   const [screen, setScreen] = useState<Screen>("home");
   const [subjectId, setSubjectId] = useState("");
   const [chapterId, setChapterId] = useState("");
@@ -443,88 +444,7 @@ useEffect(() => {
   setIsStandalone(standalone);
 }, []);
 
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    const previousHtmlOverscroll = html.style.overscrollBehaviorY;
-    const previousBodyOverscroll = body.style.overscrollBehaviorY;
-    const previousBodyOverflowX = body.style.overflowX;
-    let startY = 0;
-    let isSystemNavigationGesture = false;
 
-    html.style.overscrollBehaviorY = "none";
-    body.style.overscrollBehaviorY = "none";
-    body.style.overflowX = "hidden";
-
-    const getScrollableParent = (target: EventTarget | null) => {
-      let node = target instanceof HTMLElement ? target : null;
-
-      while (node && node !== body && node !== html) {
-        const style = window.getComputedStyle(node);
-        const canScrollY =
-          /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
-
-        if (canScrollY) return node;
-        node = node.parentElement;
-      }
-
-      return document.scrollingElement as HTMLElement | null;
-    };
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      startY = touch.clientY;
-      isSystemNavigationGesture = isSystemNavigationEdge(
-        touch.clientX,
-        window.innerWidth,
-      );
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length !== 1) return;
-      if (isSystemNavigationGesture) return;
-
-      const target = event.target as HTMLElement | null;
-      if (target?.closest("a[href]")) return;
-      if (target?.closest("[data-allow-touch-overscroll='true']")) return;
-
-      const currentY = event.touches[0].clientY;
-      const deltaY = currentY - startY;
-      const scrollable = getScrollableParent(event.target);
-
-      if (!scrollable) {
-        event.preventDefault();
-        return;
-      }
-
-      const scrollTop = scrollable.scrollTop;
-      const maxScrollTop = scrollable.scrollHeight - scrollable.clientHeight;
-
-      if (maxScrollTop <= 0) {
-        event.preventDefault();
-        return;
-      }
-
-      const pullingDownAtTop = scrollTop <= 0 && deltaY > 0;
-      const pushingUpAtBottom = scrollTop >= maxScrollTop - 1 && deltaY < 0;
-
-      if (pullingDownAtTop || pushingUpAtBottom) {
-        event.preventDefault();
-      }
-    };
-
-    document.addEventListener("touchstart", handleTouchStart, { passive: true });
-    document.addEventListener("touchmove", handleTouchMove, { passive: false });
-
-    return () => {
-      html.style.overscrollBehaviorY = previousHtmlOverscroll;
-      body.style.overscrollBehaviorY = previousBodyOverscroll;
-      body.style.overflowX = previousBodyOverflowX;
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchmove", handleTouchMove);
-    };
-  }, []);
 
 useEffect(() => {
     const loadData = async () => {
@@ -663,6 +583,7 @@ useEffect(() => {
     const keyword = normalizeSearch(search);
 
     const filtered = questions.filter((q) => {
+      if (onlyUnmemorized && q.memorized) return false;
       const subject = subjects.find((s) => s.id === q.subjectId);
       const chapter = chapters.find((c) => c.id === q.chapterId);
 
@@ -694,7 +615,7 @@ useEffect(() => {
       if (questionSortOrder === "oldest") return aIndex - bIndex;
       return bIndex - aIndex;
     });
-  }, [search, questions, subjects, chapters, chapterId, questionSortOrder]);
+  }, [search, questions, subjects, chapters, chapterId, questionSortOrder, onlyUnmemorized]);
 
   const groupedQuestions = useMemo(() => {
     return visibleQuestions.reduce((acc, q) => {
@@ -1017,6 +938,7 @@ useEffect(() => {
   }, [screen, questionId]);
 
   const navigateStudyQuestion = (id: string) => {
+    setOnlyUnmemorized(false);
     const target = questions.find(q => q.id === id);
     if (!target) return;
     setSubjectId(target.subjectId); setChapterId(target.chapterId);
@@ -1043,7 +965,15 @@ useEffect(() => {
             <div className="min-h-[calc(100svh-128px)]">
             <div className="min-w-0">
         {screen !== "home" && (<StudyHeader
-          chapterMode={screen === "chapters"}
+          unmemorized={onlyUnmemorized}
+            onToggleView={screen === "detail" || screen === "questions" ? () => {
+              const next = !onlyUnmemorized; setOnlyUnmemorized(next);
+              if (next && screen === "detail" && selectedQuestion?.memorized) {
+                const remaining = visibleQuestions.find(q=>!q.memorized);
+                if (remaining) {setQuestionId(remaining.id);setShowAnswer(false);} else setScreen("questions");
+              }
+            } : undefined}
+            chapterMode={screen === "chapters"}
           addLabel={screen === "detail" ? "수정" : "+ 추가"}
           onHome={screen !== "subjects" ? goHome : undefined}
           onAddFolder={screen === "chapters" ? () => addFolder(currentParentId) : undefined}
@@ -2384,7 +2314,7 @@ function NavigationDrawer({
     return (
       <div
         ref={pagerRef}
-        className="relative min-h-[calc(100svh-240px)] w-full overflow-x-hidden overscroll-y-contain"
+        className="relative min-h-[calc(100svh-240px)] w-full overflow-clip"
         style={{
           touchAction: pagerDragging ? "pan-x" : "pan-y",
           WebkitOverflowScrolling: "touch",
