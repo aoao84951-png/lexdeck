@@ -180,7 +180,7 @@ const makeLawLinksBreakable = (html: string) => {
     el.style.wordBreak = "break-all";
     el.style.overflowWrap = "anywhere";
 
-    el.style.color = "#536f83";
+    el.style.color = "#69567f";
     el.style.fontWeight = "800";
     el.style.textDecoration = "underline";
     el.style.textUnderlineOffset = "3px";
@@ -1161,7 +1161,7 @@ useEffect(() => {
                                       </span>
                                     ) : null}
                                     <div className="mb-2">
-                                        <span className="rounded-full bg-[#f7f5ed] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#627c8e]">
+                                        <span className="rounded-full bg-[#f5f2f9] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#76688e]">
                                         Q{originalIndex + 1}
                                         </span>
                                     </div>
@@ -1479,7 +1479,7 @@ function NavigationDrawer({
           <div className="mb-4 flex items-center justify-between">
             <div>
 
-              <p className="mt-1 text-[18px] font-extrabold tracking-[-0.05em] text-[#627c8e]">
+              <p className="mt-1 text-[18px] font-extrabold tracking-[-0.05em] text-[#76688e]">
                 목차
               </p>
             </div>
@@ -1505,7 +1505,7 @@ function NavigationDrawer({
                 <span className="h-[18px] w-[18px] rounded-md bg-[#e4e8f0]" />
               )}
 
-              <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-[#627c8e]">
+              <span className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-[#76688e]">
                 {selectedSubject?.name ?? "과목 선택"}
               </span>
 
@@ -1545,7 +1545,7 @@ function NavigationDrawer({
                             {subject.name}
                           </span>
                           {selectedSubject?.id === subject.id && (
-                            <span className="text-[12px] font-black text-[#627c8e]">√</span>
+                            <span className="text-[12px] font-black text-[#76688e]">√</span>
                           )}
                         </button>
                       ))
@@ -1640,7 +1640,7 @@ function NavigationDrawer({
                 </span>
                 <span
                   className={`min-w-0 flex-1 truncate text-[13px] ${
-                    selected ? "font-extrabold text-[#627c8e]" : "font-semibold text-[#47505f]"
+                    selected ? "font-extrabold text-[#76688e]" : "font-semibold text-[#47505f]"
                   }`}
                 >
                   {chapter.title}
@@ -1736,7 +1736,7 @@ function NavigationDrawer({
                     onOpenAction(c.id);
                   }}
                   className={`min-w-0 flex-1 touch-none select-none truncate text-left tracking-[-0.03em] ${
-                    selected ? "text-[#627c8e]" : "text-[#303236]"
+                    selected ? "text-[#76688e]" : "text-[#303236]"
                   } ${isFolder ? "text-[15px]" : isTop ? "text-[17px]" : "text-[15px]"} ${
                     isFolder ? "font-semibold" : selected ? "font-bold" : isTop ? "font-semibold" : "font-medium"
                   }`}
@@ -2237,7 +2237,7 @@ function NavigationDrawer({
                 <div
                   className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
                     pageQuestion.answer === "O"
-                      ? "bg-[#faf9dc] text-[#627c8e]"
+                      ? "bg-[#f0ebfa] text-[#76688e]"
                       : "bg-[#f3e9dd] text-[#80664b]"
                   }`}
                 >
@@ -2266,7 +2266,7 @@ function NavigationDrawer({
                         <div key={index} className="rounded-2xl bg-[#f8fafb] px-4 py-3">
                           <div className="-ml-1 flex items-center gap-2">
                             {point.category && (
-                              <span className="rounded-full bg-[#faf4df] px-2 py-1 text-[10px] font-bold text-[#627c8e]">
+                              <span className="rounded-full bg-[#f0ebfa] px-2 py-1 text-[10px] font-bold text-[#76688e]">
                                 {point.category}
                               </span>
                             )}
@@ -2706,7 +2706,7 @@ const runCommand = (command: string, value?: string) => {
                 key={v}
                 onClick={() => setAnswer(v)}
                 className={`h-11 rounded-full px-5 text-[13px] font-bold ${
-                  answer === v ? "bg-[#f5f3bb] text-[#526c7e]" : "bg-[#f7f5ee] text-[#596275]"
+                  answer === v ? "bg-[#e8e0f7] text-[#69567f]" : "bg-[#f5f2f9] text-[#596275]"
                 }`}
               >
                 {v}
@@ -2739,7 +2739,7 @@ const runCommand = (command: string, value?: string) => {
                 <button
                 type="button"
                 onClick={addExtraPoint}
-                className="rounded-full bg-[#f7f5ee] px-3 py-1.5 text-[11px] font-bold text-[#756442]"
+                className="rounded-full bg-[#f5f2f9] px-3 py-1.5 text-[11px] font-bold text-[#756442]"
                 >
                 + 추가
                 </button>
@@ -2807,7 +2807,7 @@ const runCommand = (command: string, value?: string) => {
         <footer className="lex-editor-footer">
           <button
             onClick={onClose}
-            className="h-11 rounded-full bg-[#f7f5ee] px-5 text-[13px] font-bold text-[#596275]"
+            className="h-11 rounded-full bg-[#f5f2f9] px-5 text-[13px] font-bold text-[#596275]"
           >
             취소
           </button>
@@ -2832,7 +2832,7 @@ const runCommand = (command: string, value?: string) => {
                     disabledAutoLinks,
                 })
             }
-            className="h-11 rounded-full bg-[#f5f3bb] px-5 text-[13px] font-bold text-[#526c7e]"
+            className="h-11 rounded-full bg-[#e8e0f7] px-5 text-[13px] font-bold text-[#69567f]"
             >
             저장
             </button>
@@ -3003,7 +3003,7 @@ function SubjectActionSheet({
           <div className="mt-5 space-y-2">
             <button
               onClick={onEdit}
-              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
+              className="h-12 w-full rounded-2xl bg-[#f5f2f9] text-[13px] font-bold text-[#76688e]"
             >
               과목 수정
             </button>
@@ -3093,21 +3093,21 @@ function SubjectActionSheet({
           <div className="mt-5 space-y-2">
             <button
               onClick={onAddChild}
-              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
+              className="h-12 w-full rounded-2xl bg-[#f5f2f9] text-[13px] font-bold text-[#76688e]"
             >
               하위목차 추가
             </button>
 
             <button
               onClick={onEdit}
-              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
+              className="h-12 w-full rounded-2xl bg-[#f5f2f9] text-[13px] font-bold text-[#76688e]"
             >
               목차 수정
             </button>
 
             <button
               onClick={onMove}
-              className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
+              className="h-12 w-full rounded-2xl bg-[#f5f2f9] text-[13px] font-bold text-[#76688e]"
             >
               목차 이동
             </button>
@@ -3182,7 +3182,7 @@ function SubjectActionSheet({
           <div className="mt-5">
             <button
               onClick={() => onMove(movingId, null)}
-              className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#627c8e]"
+              className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#76688e]"
             >
               최상위 목차로 이동
             </button>
@@ -3378,7 +3378,7 @@ function ListAddIcon({
           className="mx-auto max-h-[78svh] w-full max-w-[720px] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
         >
           <div className="flex items-start justify-between">
-            <span className="ml-1 translate-y-[4px] rounded-full bg-[#f5f3bb] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#627c8e] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
+            <span className="ml-1 translate-y-[4px] rounded-full bg-[#e8e0f7] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#76688e] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
               {article.law_name}
             </span>
 
@@ -3417,7 +3417,7 @@ function ListAddIcon({
               href={article.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-5 block text-right text-[13px] font-bold text-[#627c8e]"
+              className="mt-5 block text-right text-[13px] font-bold text-[#76688e]"
             >
               국가법령정보센터에서 보기
             </a>
