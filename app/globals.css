@@ -263,7 +263,9 @@ select { font-family: inherit; }
 .study-empty-text { padding: 26px 8px; font-size: 13px; line-height: 1.9; text-align: center; color: #a0a19c; }
 .study-bottom-nav button:focus-visible, .study-bottom-panel button:focus-visible, .study-page button:focus-visible { outline: 2px solid #aa9bbb; outline-offset: 2px; }
 @media (max-width: 639px) {
- .study-page { padding: 24px 20px calc(108px + env(safe-area-inset-bottom)); }
+ /* Lift the controls above the home gesture area, keeping panels and content in sync. */
+ :root { --study-nav-lift: 16px; }
+ .study-page { padding: 24px 20px calc(108px + env(safe-area-inset-bottom) + var(--study-nav-lift)); }
  .study-home-header { margin-top: 4px; margin-bottom: 25px; }
  .study-home-header h1 { font-size: 27px; }
  .study-header-title h1 { font-size: 21px; }
@@ -275,8 +277,8 @@ select { font-family: inherit; }
  .study-subjects > button { padding: 13px 11px; gap: 8px; }
  .study-subjects strong { font-size: 13px; }
  .study-subject-icon { width: 29px; height: 32px; background: transparent; }
- .study-bottom-nav { bottom: 0; left: 0; transform: none; width: 100%; max-width: none; border: 0; border-top: 1px solid #efefe9; border-radius: 0; padding: 9px 13px calc(12px + env(safe-area-inset-bottom)); box-shadow: none; }
- .study-bottom-panel { bottom: calc(94px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 130px - env(safe-area-inset-bottom)); padding: 18px; border-radius: 24px; }
+ .study-bottom-nav { bottom: 0; left: 0; transform: none; width: 100%; max-width: none; border: 0; border-top: 1px solid #efefe9; border-radius: 0; padding: 9px 13px calc(12px + env(safe-area-inset-bottom) + var(--study-nav-lift)); box-shadow: none; }
+ .study-bottom-panel { bottom: calc(94px + env(safe-area-inset-bottom) + var(--study-nav-lift)); max-height: calc(100dvh - 130px - env(safe-area-inset-bottom) - var(--study-nav-lift)); padding: 18px; border-radius: 24px; }
  .study-resume { padding: 18px; }
  .study-search input { font-size: 16px; }
  .study-field-label input, .study-field-label select { font-size: 16px; }
@@ -314,7 +316,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-tree-row { min-height: 44px; }
 .study-tree-name { font-size: 14px; }
 .study-bottom-panel { padding: 20px 20px 16px; }
-@media(max-width:639px) { .study-bottom-panel { bottom: calc(98px + env(safe-area-inset-bottom)); max-height: calc(100dvh - 140px - env(safe-area-inset-bottom) - env(safe-area-inset-top)); } }
+@media(max-width:639px) { .study-bottom-panel { bottom: calc(98px + env(safe-area-inset-bottom) + var(--study-nav-lift)); max-height: calc(100dvh - 140px - env(safe-area-inset-bottom) - env(safe-area-inset-top) - var(--study-nav-lift)); } }
 
 .study-tree-spacer { width: 34px; flex-shrink: 0; }
 .study-inline-actions { margin: 0 0 8px; padding: 6px; border: 1px solid #e8e2ef; border-radius: 12px; background: #f7f9fb; font-size: 12px; }
