@@ -188,7 +188,7 @@ const makeLawLinksBreakable = (html: string) => {
       el.style.wordBreak = "break-all";
       el.style.overflowWrap = "anywhere";
 
-      el.style.color = "#88703d";
+      el.style.color = "#536f83";
       el.style.fontWeight = "800";
       el.style.textDecoration = "underline";
       el.style.textUnderlineOffset = "3px";
@@ -1158,7 +1158,7 @@ export default function MobileApp() {
                                         </span>
                                       ) : null}
                                       <div className="mb-2">
-                                        <span className="rounded-full bg-[#f7f5ed] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#79683f]">
+                                        <span className="rounded-full bg-[#f7f5ed] px-2.5 py-1 text-[10px] font-bold tracking-[0.04em] text-[#627c8e]">
                                           Q{originalIndex + 1}
                                         </span>
                                       </div>
@@ -1507,7 +1507,7 @@ function ChapterTree({
                   onOpenAction(c.id);
                 }}
                 className={`min-w-0 flex-1 truncate text-left tracking-[-0.03em] ${
-                  selected ? "text-[#79683f]" : "text-[#303236]"
+                  selected ? "text-[#627c8e]" : "text-[#303236]"
                 } ${isFolder ? "text-[15px]" : isTop ? "text-[17px]" : "text-[15px]"} ${
                   isFolder
                     ? "font-semibold"
@@ -1941,7 +1941,7 @@ function MobileDetail({
               <div
                 className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
                   displayQuestion.answer === "O"
-                    ? "bg-[#faf0c9] text-[#796532]"
+                    ? "bg-[#faf9dc] text-[#627c8e]"
                     : "bg-[#f3e9dd] text-[#80664b]"
                 }`}
               >
@@ -1972,11 +1972,11 @@ function MobileDetail({
                     {(displayQuestion.extraPoints ?? []).map((point, index) => (
                       <div
                         key={index}
-                        className="rounded-2xl bg-[#faf8f0] px-4 py-3"
+                        className="rounded-2xl bg-[#f8fafb] px-4 py-3"
                       >
                         <div className="-ml-1 flex items-center gap-2">
                           {point.category && (
-                            <span className="rounded-full bg-[#faf4df] px-2 py-1 text-[10px] font-bold text-[#79683f]">
+                            <span className="rounded-full bg-[#faf4df] px-2 py-1 text-[10px] font-bold text-[#627c8e]">
                               {point.category}
                             </span>
                           )}
@@ -2416,7 +2416,7 @@ function QuestionForm({
                 onClick={() => setAnswer(v)}
                 className={`h-11 rounded-full px-5 text-[13px] font-bold ${
                   answer === v
-                    ? "bg-[#f6e7ad] text-[#594e34]"
+                    ? "bg-[#f5f3bb] text-[#526c7e]"
                     : "bg-[#f7f5ee] text-[#596275]"
                 }`}
               >
@@ -2550,7 +2550,7 @@ function QuestionForm({
                 disabledAutoLinks,
               })
             }
-            className="h-11 rounded-full bg-[#f6e7ad] px-5 text-[13px] font-bold text-[#594e34]"
+            className="h-11 rounded-full bg-[#f5f3bb] px-5 text-[13px] font-bold text-[#526c7e]"
           >
             저장
           </button>
@@ -2706,7 +2706,7 @@ function SubjectActionSheet({
         <div className="mt-5 space-y-2">
           <button
             onClick={onEdit}
-            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
+            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
           >
             과목 수정
           </button>
@@ -2799,21 +2799,21 @@ function ChapterActionSheet({
         <div className="mt-5 space-y-2">
           <button
             onClick={onAddChild}
-            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
+            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
           >
             하위목차 추가
           </button>
 
           <button
             onClick={onEdit}
-            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
+            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
           >
             목차 수정
           </button>
 
           <button
             onClick={onMove}
-            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#79683f]"
+            className="h-12 w-full rounded-2xl bg-[#f7f5ed] text-[13px] font-bold text-[#627c8e]"
           >
             목차 이동
           </button>
@@ -2891,7 +2891,7 @@ function MoveChapterSheet({
         <div className="mt-5">
           <button
             onClick={() => onMove(movingId, null)}
-            className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#79683f]"
+            className="flex h-11 w-full items-center border-y border-[#e5e7eb] text-left text-[14px] font-bold text-[#627c8e]"
           >
             최상위 목차로 이동
           </button>
@@ -3076,7 +3076,7 @@ function LawArticleModal({
         className="mx-auto max-h-[78svh] w-full max-w-[430px] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
       >
         <div className="flex items-start justify-between">
-          <span className="ml-1 translate-y-[4px] rounded-full bg-[#f6e7ad] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#79683f] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
+          <span className="ml-1 translate-y-[4px] rounded-full bg-[#f5f3bb] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#627c8e] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
             {article.law_name}
           </span>
 
@@ -3115,7 +3115,7 @@ function LawArticleModal({
             href={article.source_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-5 block text-right text-[13px] font-bold text-[#79683f]"
+            className="mt-5 block text-right text-[13px] font-bold text-[#627c8e]"
           >
             국가법령정보센터에서 보기
           </a>
