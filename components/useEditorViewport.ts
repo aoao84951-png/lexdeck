@@ -2,15 +2,24 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-// Keep form content in the layout viewport; only tools follow the keyboard.
+// The mobile form scrolls with the document; only its controls track the viewport.
 export function useEditorViewport() {
   const overlay = useRef<HTMLDivElement>(null);
+  const scrollBeforeOpen = useRef(typeof window === "undefined" ? 0 : window.scrollY);
   useLayoutEffect(() => {
     const element = overlay.current;
     if (!element) return;
     const html = document.documentElement;
     const previousOverflow = html.style.overflow;
-    html.style.overflow = "hidden";
+    const mobile = window.innerWidth < 1024;
+    html.style.overflow = mobile ? "auto" : "hidden";
+    if (mobile) window.scrollTo(0, 0);
+    const savedScroll = scrollBeforeOpen.current;
+    const footer = element.querySelector<HTMLElement>(".lex-editor-footer");
+    const measureFooter = () => element.style.setProperty("--lex-footer-height", `${footer?.getBoundingClientRect().height ?? 68}px`);
+    const footerObserver = new ResizeObserver(measureFooter);
+    if (footer) footerObserver.observe(footer);
+    measureFooter();
     let baselineHeight = window.innerHeight;
     let baselineWidth = window.innerWidth;
     let keyboardOpen = false;
@@ -36,9 +45,7 @@ export function useEditorViewport() {
       element.style.setProperty("--lex-viewport-left", `${viewport?.offsetLeft ?? 0}px`);
       element.style.setProperty("--lex-viewport-width", `${viewport?.width ?? window.innerWidth}px`);
       element.style.setProperty("--lex-viewport-height", `${height}px`);
-      const layoutHeight = Math.max(window.innerHeight, height);
-      element.style.setProperty("--lex-layout-height", `${layoutHeight}px`);
-      element.style.setProperty("--lex-keyboard-inset", `${layoutHeight - height}px`);
+      element.style.setProperty("--lex-keyboard-inset", `${Math.max(0, window.innerHeight - height)}px`);
     };
     // focusout fires before the next input receives focus.
     const focusChanged = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
@@ -50,7 +57,9 @@ export function useEditorViewport() {
     window.visualViewport?.addEventListener("scroll", update);
     return () => {
       cancelAnimationFrame(frame);
+      footerObserver.disconnect();
       html.style.overflow = previousOverflow;
+      if (mobile) requestAnimationFrame(() => window.scrollTo(0, savedScroll));
       document.removeEventListener("focusin", focusChanged);
       document.removeEventListener("focusout", focusChanged);
       window.removeEventListener("resize", update);

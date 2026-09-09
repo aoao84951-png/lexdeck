@@ -364,40 +364,23 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 
 .study-resume .study-resume-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* Mobile tools share the editor surface and reserve space instead of covering text. */
+/* Mobile editors use document scrolling so Safari can sample the actual form
+   behind its translucent controls, with or without the software keyboard. */
 .lex-selection-preview { margin: 10px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #76688e; }
-@media (max-width: 1023px) {
- .lex-editor-overlay { padding: 0; background: transparent; backdrop-filter: none; overflow: hidden; }
- .lex-editor-dialog { height: 100%; max-height: 100%; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
- .lex-editor-header { order: 0; padding: 12px 18px; }
- .lex-editor-body { order: 1; flex: 1; min-height: 0; scroll-padding-block: 12px; }
- .lex-editor-footer { order: 3; }
- .lex-editor-dialog:has(.lex-tools-docked.lex-tools-expanded) .lex-editor-footer { display: none; }
- .lex-tools-docked { order: 2; flex: 0 0 auto; min-height: 0; width: 100%; padding: 0 12px; background: white; overflow: hidden; }
- .lex-tools-docked .lex-tools-row { border: 0; border-radius: 0; box-shadow: none; background: white; }
- .lex-tools-docked.lex-tools-expanded { background: white; }
- .lex-tools-docked .lex-tools-panel { height: var(--lex-panel-height, 300px); min-height: 0; touch-action: pan-y; background: white; }
- .lex-tools-docked:not(.lex-tools-expanded) { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
- .lex-tools-docked .lex-tool-error { max-height: 48px; overflow-y: auto; }
-}
-
-@media (max-width: 1023px) {
- .lex-editor-overlay { box-shadow: none; }
- .lex-editor-overlay > .lex-editor-dialog { position: absolute; top: var(--lex-viewport-top, 0px); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); height: var(--lex-layout-height, 100%); max-height: none; }
- .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-footer { display: none; }
- .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-eyebrow { display: none; }
- .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-header { padding-block: 8px; }
-}
-
-/* Save actions belong to the end of the form, never over a scrolling field. */
 .lex-editor-scroll { display: contents; }
 @media (max-width: 1023px) {
- .lex-editor-scroll { display: flex; flex-direction: column; order: 1; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 12px; }
- .lex-editor-scroll > .lex-editor-body { overflow: visible; flex: 1 0 auto; }
- .lex-editor-scroll > .lex-editor-footer { flex-shrink: 0; }
- /* Keep the actual editing surface behind Safari's translucent controls.
-    Only the formatting tools follow the keyboard; never crop the whole form
-    to the visual viewport or paint a replacement backdrop below it. */
- .lex-editor-scroll { padding-bottom: calc(var(--lex-keyboard-inset, 0px) + var(--lex-tools-height, 0px)); }
- .lex-tools-docked { position: absolute; z-index: 1; top: var(--lex-viewport-height, 100%); left: 0; transform: translateY(-100%); }
+ .lex-app:has(> .lex-editor-overlay) > .study-page { display: none; }
+ .lex-editor-overlay { position: static; display: block; padding: 0; background: transparent; backdrop-filter: none; overflow: visible; box-shadow: none; }
+ .lex-editor-dialog { position: static; display: block; height: auto; min-height: 100dvh; max-height: none; max-width: none; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+ .lex-editor-header { position: sticky; top: 0; z-index: 2; padding: 12px 18px; background: white; }
+ .lex-editor-body { overflow: visible; padding-bottom: calc(24px + var(--lex-footer-height, 68px) + var(--lex-tools-height, 0px) + var(--lex-keyboard-inset, 0px)); }
+ .lex-editor-footer { position: fixed; z-index: 3; top: calc(var(--lex-viewport-top, 0px) + var(--lex-viewport-height, 100dvh)); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); transform: translateY(-100%); padding: 12px 18px; border: 0; background: transparent; pointer-events: none; }
+ .lex-editor-footer button { pointer-events: auto; }
+ .lex-tools-docked { position: fixed; z-index: 3; top: calc(var(--lex-viewport-top, 0px) + var(--lex-viewport-height, 100dvh) - var(--lex-footer-height, 68px)); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); transform: translateY(-100%); min-height: 0; padding: 0 12px; background: white; overflow: hidden; }
+ .lex-tools-docked .lex-tools-row { border: 0; border-radius: 0; box-shadow: none; background: white; }
+ .lex-tools-docked .lex-tools-panel { height: var(--lex-panel-height, 300px); min-height: 0; touch-action: pan-y; background: white; }
+ .lex-tools-docked:not(.lex-tools-expanded) { padding-bottom: 8px; }
+ .lex-tools-docked .lex-tool-error { max-height: 48px; overflow-y: auto; }
+ .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-eyebrow { display: none; }
+ .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-header { padding-block: 8px; }
 }

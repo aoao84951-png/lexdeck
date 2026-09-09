@@ -170,15 +170,18 @@ export default function EditorToolbar(props: Props) {
       const body = host.current?.closest<HTMLElement>(".lex-editor-scroll");
       const range = bookmark.current;
       if (!body || !range) return;
-      const visible = body.getBoundingClientRect();
+      const scroller = document.scrollingElement;
+      if (!scroller) return;
       const selected = range.getBoundingClientRect();
       const viewport = window.visualViewport;
-      const bottom = Math.min(visible.bottom,
+      const top = Math.max(viewport?.offsetTop ?? 0,
+        dock.querySelector(".lex-editor-header")?.getBoundingClientRect().bottom ?? 0);
+      const bottom = Math.min(
         (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight),
         surface.current?.getBoundingClientRect().top ?? Infinity);
-      const available = bottom - visible.top - 24;
-      if (selected.height > available || selected.top < visible.top + 12) body.scrollTop += selected.top - visible.top - 12;
-      else if (selected.bottom > bottom - 12) body.scrollTop += selected.bottom - bottom + 12;
+      const available = bottom - top - 24;
+      if (selected.height > available || selected.top < top + 12) scroller.scrollTop += selected.top - top - 12;
+      else if (selected.bottom > bottom - 12) scroller.scrollTop += selected.bottom - bottom + 12;
     };
     let frame = 0;
     const layout = () => { place(); cancelAnimationFrame(frame); frame = requestAnimationFrame(revealSelection); };
