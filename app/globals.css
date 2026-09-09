@@ -367,10 +367,6 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 /* Mobile tools share the editor surface and reserve space instead of covering text. */
 .lex-selection-preview { margin: 10px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #76688e; }
 @media (max-width: 1023px) {
- /* Safari can show the layout viewport below the resized editor through its
-    translucent keyboard controls. Keep the underlying question out of it,
-    preserving its layout/scroll position and the transparent overlay. */
- .lex-app:has(> .lex-editor-overlay) > .study-page { visibility: hidden; }
  .lex-editor-overlay { padding: 0; background: transparent; backdrop-filter: none; overflow: hidden; }
  .lex-editor-dialog { height: 100%; max-height: 100%; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
  .lex-editor-header { order: 0; padding: 12px 18px; }
@@ -387,7 +383,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 
 @media (max-width: 1023px) {
  .lex-editor-overlay { box-shadow: none; }
- .lex-editor-overlay > .lex-editor-dialog { position: absolute; top: var(--lex-viewport-top, 0px); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); height: var(--lex-viewport-height, 100%); max-height: none; }
+ .lex-editor-overlay > .lex-editor-dialog { position: absolute; top: var(--lex-viewport-top, 0px); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); height: var(--lex-layout-height, 100%); max-height: none; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-footer { display: none; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-eyebrow { display: none; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-header { padding-block: 8px; }
@@ -399,4 +395,9 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
  .lex-editor-scroll { display: flex; flex-direction: column; order: 1; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 12px; }
  .lex-editor-scroll > .lex-editor-body { overflow: visible; flex: 1 0 auto; }
  .lex-editor-scroll > .lex-editor-footer { flex-shrink: 0; }
+ /* Keep the actual editing surface behind Safari's translucent controls.
+    Only the formatting tools follow the keyboard; never crop the whole form
+    to the visual viewport or paint a replacement backdrop below it. */
+ .lex-editor-scroll { padding-bottom: calc(var(--lex-keyboard-inset, 0px) + var(--lex-tools-height, 0px)); }
+ .lex-tools-docked { position: absolute; z-index: 1; top: var(--lex-viewport-height, 100%); left: 0; transform: translateY(-100%); }
 }

@@ -154,6 +154,7 @@ export default function EditorToolbar(props: Props) {
       if (!element || !bounds) return;
       if (dock) {
         element.style.setProperty("--lex-panel-height", `${Math.min(340, height * .42)}px`);
+        dock.style.setProperty("--lex-tools-height", `${element.getBoundingClientRect().height}px`);
         setPosition({});
       } else {
         const panelWidth = Math.min(352, width - 24);
@@ -171,9 +172,13 @@ export default function EditorToolbar(props: Props) {
       if (!body || !range) return;
       const visible = body.getBoundingClientRect();
       const selected = range.getBoundingClientRect();
-      const available = visible.height - 24;
+      const viewport = window.visualViewport;
+      const bottom = Math.min(visible.bottom,
+        (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight),
+        surface.current?.getBoundingClientRect().top ?? Infinity);
+      const available = bottom - visible.top - 24;
       if (selected.height > available || selected.top < visible.top + 12) body.scrollTop += selected.top - visible.top - 12;
-      else if (selected.bottom > visible.bottom - 12) body.scrollTop += selected.bottom - visible.bottom + 12;
+      else if (selected.bottom > bottom - 12) body.scrollTop += selected.bottom - bottom + 12;
     };
     let frame = 0;
     const layout = () => { place(); cancelAnimationFrame(frame); frame = requestAnimationFrame(revealSelection); };
@@ -183,6 +188,7 @@ export default function EditorToolbar(props: Props) {
     window.visualViewport?.addEventListener("resize", layout); window.visualViewport?.addEventListener("scroll", layout);
     window.addEventListener("resize", layout); if (!dock) document.addEventListener("scroll", place, true);
     return () => {
+      dock?.style.removeProperty("--lex-tools-height");
       cancelAnimationFrame(frame); observer.disconnect(); window.visualViewport?.removeEventListener("resize", layout); window.visualViewport?.removeEventListener("scroll", layout);
       window.removeEventListener("resize", layout); document.removeEventListener("scroll", place, true);
     };

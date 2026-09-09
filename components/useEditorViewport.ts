@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-// Fit the editor to the visible viewport without painting over Safari chrome.
+// Keep form content in the layout viewport; only tools follow the keyboard.
 export function useEditorViewport() {
   const overlay = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -36,6 +36,9 @@ export function useEditorViewport() {
       element.style.setProperty("--lex-viewport-left", `${viewport?.offsetLeft ?? 0}px`);
       element.style.setProperty("--lex-viewport-width", `${viewport?.width ?? window.innerWidth}px`);
       element.style.setProperty("--lex-viewport-height", `${height}px`);
+      const layoutHeight = Math.max(window.innerHeight, height);
+      element.style.setProperty("--lex-layout-height", `${layoutHeight}px`);
+      element.style.setProperty("--lex-keyboard-inset", `${layoutHeight - height}px`);
     };
     // focusout fires before the next input receives focus.
     const focusChanged = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
