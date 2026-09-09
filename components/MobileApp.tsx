@@ -1141,7 +1141,7 @@ export default function MobileApp() {
                                   onClick={() => selectQuestion(q.id)}
                                   className={`mb-3 w-full rounded-[20px] border px-4 py-4 text-left shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition active:scale-[0.995] ${
                                     getQuestionImportanceStars(q)
-                                      ? "border-[#ece2bf] bg-[#fffdf6] shadow-[0_5px_16px_rgba(120,105,65,0.04)]"
+                                      ? "border-[#ddd2ee] bg-[#fcfaff] shadow-[0_5px_16px_rgba(118,104,142,0.04)]"
                                       : "border-[#e4e8f0] bg-white"
                                   } ${q.memorized ? "opacity-40" : ""}`}
                                 >
@@ -1865,7 +1865,7 @@ function MobileDetail({
         <section
           className={`relative rounded-[22px] border px-5 py-5 ${
             currentImportanceStars
-              ? "border-[#ece2bf] bg-[#fffdf6] shadow-[0_8px_22px_rgba(120,105,65,0.04)]"
+              ? "border-[#ddd2ee] bg-[#fcfaff] shadow-[0_8px_22px_rgba(118,104,142,0.04)]"
               : "border-[#e4e8f0] bg-white"
           }`}
         >
@@ -1906,7 +1906,7 @@ function MobileDetail({
               <span className="relative flex h-7 w-7 items-center justify-center">
                 <StarIcon active={Boolean(currentImportanceStars)} size={22} />
                 {currentImportanceStars ? (
-                  <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#8a7544] px-[3px] text-[8px] font-black leading-none text-white">
+                  <span className="absolute -right-1 -top-1 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-[#88769f] px-[3px] text-[8px] font-black leading-none text-white">
                     {currentImportanceStars}
                   </span>
                 ) : null}
@@ -1921,7 +1921,7 @@ function MobileDetail({
               }}
               className={`flex h-8 w-8 items-center justify-center rounded-full border transition-transform active:scale-90 ${
                 displayQuestion.memorized
-                  ? "border-[#bda974] bg-[#8a7544] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
+                  ? "border-[#b6a5cc] bg-[#88769f] shadow-[0_6px_14px_rgba(15,42,95,0.22)]"
                   : "border-[#dce2ee] bg-[#f8fafc]"
               }`}
               aria-label="암기완료"
@@ -2950,7 +2950,7 @@ function ListAddIcon({
         />
       </svg>
 
-      <span className="absolute bottom-[1px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#8a7544] text-white">
+      <span className="absolute bottom-[1px] right-[2px] flex h-3.5 w-3.5 items-center justify-center rounded-full border border-white bg-[#88769f] text-white">
         <span className="translate-y-[-1px] text-[12px] font-bold leading-none">
           +
         </span>
