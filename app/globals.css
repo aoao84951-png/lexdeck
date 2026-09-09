@@ -377,7 +377,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
  .lex-editor-body { overflow: visible; padding-bottom: calc(24px + var(--lex-footer-height, 68px) + var(--lex-tools-height, 0px) + var(--lex-keyboard-inset, 0px)); }
  /* Let Safari anchor this bar during its own toolbar/scroll animations.
     VisualViewport events arrive asynchronously and must not reposition it. */
- .lex-editor-footer { position: static; z-index: auto; width: 100%; padding: 12px 18px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #efefec; background: white; overscroll-behavior: none; }
+ .lex-editor-footer { position: fixed; z-index: 3; top: auto; bottom: 0; left: 0; width: 100%; transform: none; padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid #efefec; background: white; overscroll-behavior: none; }
  .lex-editor-footer button:first-child { min-width: 64px; padding-inline: 12px; background: transparent; }
  .lex-editor-footer button:last-child { flex: 1; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-footer { display: none; }
