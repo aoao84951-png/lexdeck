@@ -156,6 +156,9 @@ select { font-family: inherit; }
 /* Shared study layout and navigation, inspired by the companion vocabulary app. */
 .lex-app { color: #303236; background: #fff; }
 .study-page { max-width: 900px; padding: 30px 28px 124px; }
+@media (min-width: 1024px) {
+  .study-page { max-width: none; }
+}
 .study-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 26px; min-height: 48px; }
 .study-header-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .study-header-title h1 { margin: 0; color: #3d4148; font-size: 23px; font-weight: 600; letter-spacing: -.035em; overflow-wrap: anywhere; }
