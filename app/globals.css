@@ -380,3 +380,12 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
  .lex-tools-docked:not(.lex-tools-expanded) { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
  .lex-tools-docked .lex-tool-error { max-height: 48px; overflow-y: auto; }
 }
+
+@media (max-width: 1023px) {
+ /* Keep everything behind iOS's translucent browser/keyboard chrome opaque. */
+ .lex-editor-overlay { height: max(100%, 100lvh); overflow: visible; box-shadow: 0 0 0 100vmax white; }
+ .lex-editor-overlay > .lex-editor-dialog { position: absolute; top: var(--lex-viewport-top, 0px); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); height: var(--lex-viewport-height, 100%); max-height: none; }
+ .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-footer { display: none; }
+ .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-eyebrow { display: none; }
+ .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-header { padding-block: 8px; }
+}
