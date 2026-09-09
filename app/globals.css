@@ -301,7 +301,8 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-bottom-nav > button { flex-direction: row; gap: 0; height: 48px; }
 .study-bottom-nav > button > .study-symbol { font-size: 27px; }
 .study-bottom-nav > .study-nav-add > .study-symbol { position: static; width: auto; height: auto; overflow: visible; font-size: 32px; }
-.study-settings { z-index: 48; }
+/* Header controls stay above page content but below navigation dialogs (45). */
+.study-settings { z-index: 40; }
 .study-settings > button[aria-expanded="true"] { background: #f0ebfa; color: #303236; }
 .study-settings-panel { width: 224px; min-width: 0; top: 48px; padding: 8px; border-color: #e8e2ef; box-shadow: 0 8px 32px #8b81a21f; }
 .study-settings-panel > button { min-height: 48px; height: auto; padding: 8px 12px; gap: 12px; border-radius: 12px; font-size: 14px; color: #4b5058; }
