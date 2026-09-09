@@ -363,3 +363,20 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-chapter-toggle { border: 0; border-radius: 0; box-shadow: none; }
 
 .study-resume .study-resume-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Mobile tools share the editor surface and reserve space instead of covering text. */
+.lex-selection-preview { margin: 10px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #76688e; }
+@media (max-width: 1023px) {
+ .lex-editor-overlay { padding: 0; background: white; backdrop-filter: none; overflow: hidden; }
+ .lex-editor-dialog { height: 100%; max-height: 100%; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
+ .lex-editor-header { order: 0; padding: 12px 18px; }
+ .lex-editor-body { order: 1; flex: 1; min-height: 0; scroll-padding-block: 12px; }
+ .lex-editor-footer { order: 3; }
+ .lex-editor-dialog:has(.lex-tools-docked.lex-tools-expanded) .lex-editor-footer { display: none; }
+ .lex-tools-docked { order: 2; flex: 0 0 auto; min-height: 0; width: 100%; padding: 0 12px; background: white; overflow: hidden; }
+ .lex-tools-docked .lex-tools-row { border: 0; border-radius: 0; box-shadow: none; background: white; }
+ .lex-tools-docked.lex-tools-expanded { background: white; }
+ .lex-tools-docked .lex-tools-panel { height: var(--lex-panel-height, 300px); min-height: 0; touch-action: pan-y; background: white; }
+ .lex-tools-docked:not(.lex-tools-expanded) { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+ .lex-tools-docked .lex-tool-error { max-height: 48px; overflow-y: auto; }
+}

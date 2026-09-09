@@ -40,7 +40,8 @@ export default function EditorToolbar(props: Props) {
 
   const panelRef = useRef<"color" | "link" | null>(null);
   const keyboard = useRef<{ editor: HTMLElement; value: string | null } | null>(null);
-  const panelHeight = useRef(340);
+  const [dock, setDock] = useState<HTMLElement | null>(null);
+  const [selectionText, setSelectionText] = useState("");
   const pendingSelection = useRef<EditorSelection | null>(null);
   const [revision, setRevision] = useState(0);
   const [selectedColors, setSelectedColors] = useState<{text: string | null; background: string | null}>({text: null, background: null});
@@ -93,6 +94,14 @@ export default function EditorToolbar(props: Props) {
   };
 
   useEffect(() => {
+    const media = window.matchMedia("(max-width: 1023px)");
+    const updateDock = () => setDock(media.matches ? host.current?.closest<HTMLElement>(".lex-editor-dialog") ?? null : null);
+    updateDock();
+    media.addEventListener("change", updateDock);
+    return () => media.removeEventListener("change", updateDock);
+  }, []);
+
+  useEffect(() => {
     const hide = () => { releaseKeyboard(); panelRef.current = null; setPanel(null); setFloating(false); setError(""); };
     const update = () => {
       if (panelRef.current || surface.current?.contains(document.activeElement)) return;
@@ -107,13 +116,21 @@ export default function EditorToolbar(props: Props) {
       setActive(actions.filter(([, , command]) => command !== "removeFormat" && document.queryCommandState(command)).map(([, , command]) => command));
     };
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !surface.current?.contains(event.target)) hide();
+      if (!(event.target instanceof Node) || surface.current?.contains(event.target)) return;
+      // A drag in the editor is a scroll/selection gesture, not a dismissal.
+      if (panelRef.current && host.current?.closest(".lex-editor-body")?.contains(event.target)) return;
+      hide();
     };
+    const focus = (event: FocusEvent) => {
+      if (event.target instanceof HTMLElement && event.target.matches('[contenteditable="true"]') && event.target !== field()) hide();
+    };
+    document.addEventListener("focusin", focus);
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape") hide(); };
     document.addEventListener("selectionchange", update); document.addEventListener("pointerup", update);
     document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape);
     return () => {
       releaseKeyboard();
+      document.removeEventListener("focusin", focus);
       document.removeEventListener("selectionchange", update); document.removeEventListener("pointerup", update);
       document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", escape);
     };
@@ -135,15 +152,9 @@ export default function EditorToolbar(props: Props) {
       const element = surface.current;
       const bounds = bookmark.current?.getBoundingClientRect();
       if (!element || !bounds) return;
-      if (window.innerWidth < 1024) {
-        element.style.setProperty("--lex-panel-height", `${Math.min(panelHeight.current, Math.max(80, height - 80))}px`);
-        let bottom = top + height;
-        // Hardware keyboards and a dismissed software keyboard leave the save footer visible.
-        if (!panel && window.innerHeight - height < 100) {
-          const footer = host.current?.closest("[role=dialog]")?.querySelector(".lex-editor-footer")?.getBoundingClientRect();
-          if (footer && footer.bottom <= bottom + 1 && footer.top > top + 60) bottom = Math.min(bottom, footer.top - 8);
-        }
-        setPosition({ position: "fixed", width, left, top: bottom, transform: "translateY(-100%)", zIndex: 200 });
+      if (dock) {
+        element.style.setProperty("--lex-panel-height", `${Math.min(340, height * .42)}px`);
+        setPosition({});
       } else {
         const panelWidth = Math.min(352, width - 24);
         const panelHeight = element.getBoundingClientRect().height;
@@ -153,26 +164,37 @@ export default function EditorToolbar(props: Props) {
           maxHeight: Math.max(100, height - 24), zIndex: 200 });
       }
     };
-    place();
-    const observer = new ResizeObserver(place);
-    if (surface.current) observer.observe(surface.current);
-    window.visualViewport?.addEventListener("resize", place); window.visualViewport?.addEventListener("scroll", place);
-    window.addEventListener("resize", place); document.addEventListener("scroll", place, true);
-    return () => {
-      observer.disconnect(); window.visualViewport?.removeEventListener("resize", place); window.visualViewport?.removeEventListener("scroll", place);
-      window.removeEventListener("resize", place); document.removeEventListener("scroll", place, true);
+    const revealSelection = () => {
+      if (!dock) return;
+      const body = host.current?.closest<HTMLElement>(".lex-editor-body");
+      const range = bookmark.current;
+      if (!body || !range) return;
+      const visible = body.getBoundingClientRect();
+      const selected = range.getBoundingClientRect();
+      const available = visible.height - 24;
+      if (selected.height > available || selected.top < visible.top + 12) body.scrollTop += selected.top - visible.top - 12;
+      else if (selected.bottom > visible.bottom - 12) body.scrollTop += selected.bottom - visible.bottom + 12;
     };
-  }, [floating, panel, props.customColors.length, error, linkType]);
+    let frame = 0;
+    const layout = () => { place(); cancelAnimationFrame(frame); frame = requestAnimationFrame(revealSelection); };
+    layout();
+    const observer = new ResizeObserver(layout);
+    if (surface.current) observer.observe(surface.current);
+    window.visualViewport?.addEventListener("resize", layout); window.visualViewport?.addEventListener("scroll", layout);
+    window.addEventListener("resize", layout); if (!dock) document.addEventListener("scroll", place, true);
+    return () => {
+      cancelAnimationFrame(frame); observer.disconnect(); window.visualViewport?.removeEventListener("resize", layout); window.visualViewport?.removeEventListener("scroll", layout);
+      window.removeEventListener("resize", layout); document.removeEventListener("scroll", place, true);
+    };
+  }, [floating, panel, props.customColors.length, error, linkType, dock]);
 
   const toggle = (next: "color" | "link") => {
-    capture(); setError("");
+    capture(); setSelectionText(bookmark.current?.toString() ?? ""); setError("");
     if (panelRef.current === next) { closePanel(); return; }
     releaseKeyboard();
     panelRef.current = next; setPanel(next);
     const editor = field();
-    if (isMobile() && next === "color" && editor && bookmark.current) {
-      const viewport = window.visualViewport;
-      panelHeight.current = Math.max(300, Math.min(400, window.innerHeight - (viewport?.height ?? window.innerHeight)));
+    if (isMobile() && editor && bookmark.current) {
       const offsets = readEditorSelection(editor, bookmark.current);
       keyboard.current = { editor, value: editor.getAttribute("inputmode") };
       editor.setAttribute("inputmode", "none"); editor.blur(); editor.focus({ preventScroll: true });
@@ -193,7 +215,7 @@ export default function EditorToolbar(props: Props) {
     closePanel();
   };
   const floatingSurface = floating || !!panel;
-  const controls = <div ref={surface} className={`lex-tools lex-tools-floating ${panel ? "lex-tools-expanded" : ""}`} style={floatingSurface ? position : undefined}>
+  const controls = <div ref={surface} className={`lex-tools lex-tools-floating ${dock ? "lex-tools-docked" : ""} ${panel ? "lex-tools-expanded" : ""}`} style={floatingSurface ? position : undefined}>
     <div className="lex-tools-row" role="toolbar" aria-label="텍스트 서식" onPointerDown={e => { if ((e.target as HTMLElement).closest("button")) { capture(); e.preventDefault(); } }}>
       {actions.map(([Icon, label, command]) => <button key={command} type="button" title={label} aria-label={label} aria-pressed={active.includes(command)} onClick={() => perform(() => props.runCommand(command))}><Icon size={18} strokeWidth={1.8} /></button>)}
 
@@ -218,6 +240,7 @@ export default function EditorToolbar(props: Props) {
       <div className="lex-color-add"><input type="color" aria-label="새 색상 선택" value={/^#[0-9a-f]{6}$/i.test(newColor) ? newColor : "#c79832"} onChange={e => setNewColor(e.target.value)} /><input aria-label="색상 코드" value={newColor} maxLength={7} onChange={e => setNewColor(e.target.value)} /><button type="button" aria-label="내 색상 추가" onClick={() => { if (!/^#[0-9a-f]{6}$/i.test(newColor)) { setError("#C79832처럼 6자리 색상 코드를 입력해 주세요."); return; } props.saveCustomColors(Array.from(new Set([...props.customColors, newColor.toLowerCase()]))); setError(""); }}><Plus size={17} />추가</button></div>
     </details></div>}
     {panel === "link" && <div className="lex-tools-panel">
+      <p className="lex-selection-preview" title={selectionText}>선택한 글: {selectionText}</p>
       <div className="lex-segments"><button type="button" aria-pressed={linkType === "web"} onClick={() => { setLinkType("web"); setError(""); }}><Link size={14} />웹 링크</button><button type="button" aria-pressed={linkType === "law"} onClick={() => { setLinkType("law"); setError(""); }}><Scale size={14} />법령 연결</button></div>
       <div className="lex-link-fields" onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) { e.preventDefault(); applyLink(); } }}>
         {linkType === "web" ? <label>링크 주소<input aria-label="링크 주소" placeholder="https://" value={url} onChange={e => setUrl(e.target.value)} /></label> : <><label>법령명<input aria-label="법령명" placeholder="예: 민법" value={law} onChange={e => setLaw(e.target.value)} /></label><label>조문 번호<input aria-label="조문 번호" placeholder="예: 750, 14의2" value={article} onChange={e => setArticle(e.target.value)} /></label></>}
@@ -227,5 +250,5 @@ export default function EditorToolbar(props: Props) {
     </div>}
     {error && <p role="alert" className="lex-tool-error">{error}</p>}
   </div>;
-  return <><div ref={host} hidden aria-hidden="true" />{floatingSurface && createPortal(controls, document.body)}</>;
+  return <><div ref={host} hidden aria-hidden="true" />{floatingSurface && createPortal(controls, dock ?? document.body)}</>;
 }

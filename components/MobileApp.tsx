@@ -7,6 +7,7 @@ import StudyHeader from "./StudyHeader";
 import StudyNavigation from "./StudyNavigation";
 import StudyHome from "./StudyHome";
 import EditorToolbar from "./EditorToolbar";
+import { useEditorViewport } from "./useEditorViewport";
 import { FontSwitcher } from "./FontPreference";
 import { supabase } from "@/app/lib/supabase";
 
@@ -2114,6 +2115,7 @@ function QuestionForm({
   onClose: () => void;
   onSave: (q: Partial<Question>) => void;
 }) {
+  const editorOverlay = useEditorViewport();
   const [answer, setAnswer] = useState<Answer>(question?.answer ?? "O");
   const [extraPoints, setExtraPoints] = useState<ExtraPoint[]>(
     question?.extraPoints?.length ? question.extraPoints : [],
@@ -2376,7 +2378,7 @@ function QuestionForm({
   };
 
   return (
-    <div className="lex-editor-overlay fixed inset-0 z-50">
+    <div ref={editorOverlay} className="lex-editor-overlay fixed inset-0 z-50">
       <div role="dialog" aria-modal="true" aria-label={question ? "문제 수정" : "문제 추가"} className="lex-editor-dialog">
         <header className="lex-editor-header">
           <div><p className="lex-editor-eyebrow">MY STUDY NOTE</p><h2 className="text-[22px] font-semibold tracking-[-0.03em]">
