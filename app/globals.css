@@ -374,7 +374,9 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
  .lex-editor-dialog { position: static; display: block; height: auto; min-height: 100dvh; max-height: none; max-width: none; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
  .lex-editor-header { position: sticky; top: 0; z-index: 2; padding: 12px 18px; background: white; }
  .lex-editor-body { overflow: visible; padding-bottom: calc(24px + var(--lex-footer-height, 68px) + var(--lex-tools-height, 0px) + var(--lex-keyboard-inset, 0px)); }
- .lex-editor-footer { position: fixed; z-index: 3; top: calc(var(--lex-viewport-top, 0px) + var(--lex-viewport-height, 100dvh)); left: var(--lex-viewport-left, 0px); width: var(--lex-viewport-width, 100%); transform: translateY(-100%); padding: 12px 18px; border: 0; border-top: 1px solid #efefec; background: white; }
+ /* Let Safari anchor this bar during its own toolbar/scroll animations.
+    VisualViewport events arrive asynchronously and must not reposition it. */
+ .lex-editor-footer { position: fixed; z-index: 3; top: auto; bottom: 0; left: 0; width: 100%; transform: none; padding: 12px 18px; border: 0; border-top: 1px solid #efefec; background: white; }
  .lex-editor-footer button:first-child { min-width: 64px; padding-inline: 12px; background: transparent; }
  .lex-editor-footer button:last-child { flex: 1; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-footer { display: none; }
