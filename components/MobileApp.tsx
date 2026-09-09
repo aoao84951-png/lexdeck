@@ -964,7 +964,7 @@ export default function MobileApp() {
             }
             eyebrow={
               screen === "subjects"
-                ? "LEXDECK"
+                ? "ɢᴏɴɢʟᴏɢ"
                 : screen === "chapters"
                   ? "SUBJECT"
                   : screen === "questions"

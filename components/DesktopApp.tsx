@@ -980,7 +980,7 @@ useEffect(() => {
           onAddFolder={screen === "chapters" ? () => addFolder(currentParentId) : undefined}
           eyebrow={
             screen === "subjects"
-              ? "LEXDECK"
+              ? "ɢᴏɴɢʟᴏɢ"
               : screen === "chapters"
               ? "SUBJECT"
               : screen === "questions"
