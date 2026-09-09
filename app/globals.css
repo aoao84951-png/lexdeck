@@ -193,7 +193,7 @@ select { font-family: inherit; }
 .study-daily-controls button:first-child, .study-daily-controls button:last-child { width: 38px; border: 1px solid #eeeee8; border-radius: 50%; }
 .study-daily-controls button:disabled { opacity: .3; }
 .study-statistics-header { display: flex; align-items: center; }
-.study-statistics-header::after { content: ""; order: 1; flex: 1; min-width: 0; height: 2px; margin-left: 12px; background: radial-gradient(circle, #d9d7cf 1px, transparent 1px) left center / 7px 2px repeat-x; }
+.study-statistics-header::after { content: ""; order: 1; flex: 1; min-width: 0; height: 2px; margin-inline: 12px; background: radial-gradient(circle, #d9d7cf 1px, transparent 1px) left center / 7px 2px repeat-x; }
 .study-statistics-header h2 { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 15px; font-weight: 500; color: #626369; }
 .study-statistics-header h2::before { content: ""; width: 4px; height: 17px; border-radius: 4px; background: #f5e5a3; }
 .study-statistics-filter { order: 2; display: flex; justify-content: flex-end; position: relative; min-width: 0; max-width: 65%; }
