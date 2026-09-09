@@ -180,7 +180,7 @@ select { font-family: inherit; }
 .study-home-caption > span { font-size: 11px; color: #a2a29a; }
 .study-home-caption > button { display: flex; align-items: center; gap: 3px; color: #9a927b; font-size: 11px; }
 .study-daily-card { padding: 24px 30px; border: 1px solid #eee7d1; border-radius: 28px; background: #fffdf5; }
-.study-card-top { display: flex; justify-content: space-between; color: #a29262; font-size: 12px; }
+.study-card-top { display: flex; justify-content: flex-end; color: #a29262; font-size: 12px; }
 .study-card-top > span { display: inline-flex; align-items: center; gap: 6px; }
 .study-daily-question { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; min-height: 235px; padding: 28px 18px; gap: 24px; text-align: center; }
 .study-daily-question strong { font-size: 23px; line-height: 1.85; font-weight: 500; letter-spacing: -.025em; word-break: keep-all; overflow-wrap: anywhere; }
