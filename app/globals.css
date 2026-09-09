@@ -85,7 +85,7 @@ select { font-family: inherit; }
 .lex-editor-footer button { min-width: 88px; }
 .lex-extra-point { background: white; }
 .lex-editor-dialog input:focus { outline: 2px solid #aa9bbb; outline-offset: 1px; }
-.lex-tools { color: #626873; font-family: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; -webkit-user-select: none; user-select: none; }
+.lex-tools { color: #626873; font-family: inherit; -webkit-user-select: none; user-select: none; }
 .lex-tools-floating { overflow-y: auto; overscroll-behavior: contain; border: 1px solid #e1e5eb; border-radius: 20px; background: #fff; box-shadow: 0 8px 32px #303a4b14; }
 .lex-tools-row { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); align-items: center; padding: 6px; }
 .lex-tools-row button { display: grid; place-items: center; min-width: 0; height: 38px; border-radius: 12px; }
