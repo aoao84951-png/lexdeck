@@ -285,10 +285,10 @@ select { font-family: inherit; }
 .lex-app[data-study-screen="detail"] .study-detail-viewport { height: calc(100dvh - 210px - env(safe-area-inset-bottom)); min-height: 260px; }
 
 
-/* Same symbols-only face as vocab-flow: normal letters keep the selected reading font. */
+/* Companion symbols with lavender star fills; normal letters keep the reading font. */
 @font-face {
  font-family: "Summer Symbols";
- src: url("/fonts/aa-summer-symbols-v2.woff2") format("woff2");
+ src: url("/fonts/aa-summer-symbols-lavender-v3.woff2") format("woff2");
  font-weight: 100 900; font-style: normal; font-display: swap;
  unicode-range: U+0021-002F, U+003A-0040, U+005B-0060, U+007B-007E, U+2000-2BFF, U+E000-F8FF;
 }
