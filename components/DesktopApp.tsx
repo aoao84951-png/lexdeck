@@ -180,7 +180,7 @@ const makeLawLinksBreakable = (html: string) => {
     el.style.wordBreak = "break-all";
     el.style.overflowWrap = "anywhere";
 
-    el.style.color = "#69567f";
+    el.style.color = "#56368a";
     el.style.fontWeight = "800";
     el.style.textDecoration = "underline";
     el.style.textUnderlineOffset = "3px";

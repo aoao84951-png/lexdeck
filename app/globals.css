@@ -26,7 +26,7 @@ button {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #0f2a5f;
+  color: #56368a;
   font: inherit;
   font-weight: 800;
   text-decoration: underline;
@@ -56,7 +56,7 @@ button {
 }
 
 a {
-  color: #0f2a5f;
+  color: #56368a;
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -345,7 +345,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 
 .study-ui-symbol { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; vertical-align: middle; }
 .study-explanation { color: #515b65; }
-.study-explanation a, .study-explanation .law-auto-link { color: #69567f; text-decoration-color: #b7a8ca; }
+.study-explanation a, .study-explanation .law-auto-link { color: #56368a; text-decoration-color: #b7a8ca; }
 .study-explanation p.text-\[\#8a94a6\] { color: #9c93ad; }
 .study-explanation .bg-\[\#e5e7eb\] { background: #e8e2ef; }
 .study-explanation .text-\[\#596275\] { color: #515b65; }
