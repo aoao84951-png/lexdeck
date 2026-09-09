@@ -2681,6 +2681,7 @@ const runCommand = (command: string, value?: string) => {
           </button>
         </div></header>
 
+        <div className="lex-editor-scroll">
         <div className="lex-editor-body">
 
             <p className="lex-editor-intro">지문과 해설을 정리하고, 중요한 문장에 표시를 남겨보세요.</p>
@@ -2839,6 +2840,7 @@ const runCommand = (command: string, value?: string) => {
             저장
             </button>
         </footer>
+        </div>
       </div>
     </div>
   );

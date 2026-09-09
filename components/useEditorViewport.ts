@@ -2,8 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-// Resize only the dialog: the opaque overlay must still cover the layout viewport
-// underneath Safari's translucent keyboard accessory and browser controls.
+// Fit the editor to the visible viewport without painting over Safari chrome.
 export function useEditorViewport() {
   const overlay = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {

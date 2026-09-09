@@ -118,7 +118,7 @@ export default function EditorToolbar(props: Props) {
     const outside = (event: PointerEvent) => {
       if (!(event.target instanceof Node) || surface.current?.contains(event.target)) return;
       // A drag in the editor is a scroll/selection gesture, not a dismissal.
-      if (panelRef.current && host.current?.closest(".lex-editor-body")?.contains(event.target)) return;
+      if (panelRef.current && host.current?.closest(".lex-editor-scroll")?.contains(event.target)) return;
       hide();
     };
     const focus = (event: FocusEvent) => {
@@ -166,7 +166,7 @@ export default function EditorToolbar(props: Props) {
     };
     const revealSelection = () => {
       if (!dock) return;
-      const body = host.current?.closest<HTMLElement>(".lex-editor-body");
+      const body = host.current?.closest<HTMLElement>(".lex-editor-scroll");
       const range = bookmark.current;
       if (!body || !range) return;
       const visible = body.getBoundingClientRect();
