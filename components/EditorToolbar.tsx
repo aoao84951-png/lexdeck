@@ -25,6 +25,7 @@ const names = ["기본", "회색", "갈색", "주황", "노랑", "초록", "파�
 export default function EditorToolbar(props: Props) {
   const host = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
+  const linkDialog = useRef<HTMLDialogElement>(null);
   const bookmark = useRef<Range | null>(null);
   const [panel, setPanel] = useState<"color" | "link" | null>(null);
   const [floating, setFloating] = useState(false);
@@ -71,6 +72,16 @@ export default function EditorToolbar(props: Props) {
     return true;
   };
   const perform = (action: () => void) => {
+    // A modal makes the editor inert. Close it before restoring the bookmark,
+    // without reopening the keyboard on the underlying contenteditable.
+    if (linkDialog.current?.open) {
+      const editor = field();
+      if (editor) {
+        keyboard.current = { editor, value: editor.getAttribute("inputmode") };
+        editor.setAttribute("inputmode", "none");
+      }
+      linkDialog.current.close();
+    }
     if (!restore()) { setError("먼저 편집할 글자를 선택해 주세요."); return false; }
     const editor = field()!;
     const offsets = readEditorSelection(editor, bookmark.current!);
@@ -83,6 +94,13 @@ export default function EditorToolbar(props: Props) {
     return true;
   };
   const closePanel = () => {
+    if (dock && panelRef.current === "link") {
+      linkDialog.current?.close();
+      field()?.blur(); releaseKeyboard();
+      panelRef.current = null; setPanel(null); setFloating(false); setError("");
+      host.current?.closest<HTMLElement>(".lex-editor-dialog")?.querySelector<HTMLButtonElement>(".lex-editor-close")?.focus({ preventScroll: true });
+      return;
+    }
     panelRef.current = null; setPanel(null); setError("");
     const hadKeyboard = !!keyboard.current;
     releaseKeyboard();
@@ -143,8 +161,19 @@ export default function EditorToolbar(props: Props) {
     pendingSelection.current = null;
   }, [revision]);
 
+  const mobileLink = !!dock && panel === "link";
   useLayoutEffect(() => {
-    if (!floating && !panel) return;
+    if (!mobileLink) return;
+    const dialog = linkDialog.current;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => { if (dialog.open) dialog.close(); };
+  }, [mobileLink]);
+
+  useLayoutEffect(() => {
+    // Input focus belongs to the browser while the link dialog is open.
+    // Never scroll the old text selection in response to keyboard panning.
+    if (mobileLink || (!floating && !panel)) return;
     const place = () => {
       const viewport = window.visualViewport;
       const left = viewport?.offsetLeft ?? 0, top = viewport?.offsetTop ?? 0;
@@ -166,7 +195,7 @@ export default function EditorToolbar(props: Props) {
       }
     };
     const revealSelection = () => {
-      if (!dock) return;
+      if (!dock || surface.current?.contains(document.activeElement)) return;
       const body = host.current?.closest<HTMLElement>(".lex-editor-scroll");
       const range = bookmark.current;
       if (!body || !range) return;
@@ -195,7 +224,7 @@ export default function EditorToolbar(props: Props) {
       cancelAnimationFrame(frame); observer.disconnect(); window.visualViewport?.removeEventListener("resize", layout); window.visualViewport?.removeEventListener("scroll", layout);
       window.removeEventListener("resize", layout); document.removeEventListener("scroll", place, true);
     };
-  }, [floating, panel, props.customColors.length, error, linkType, dock]);
+  }, [floating, panel, props.customColors.length, error, linkType, dock, mobileLink]);
 
   const toggle = (next: "color" | "link") => {
     capture(); setSelectionText(bookmark.current?.toString() ?? ""); setError("");
@@ -203,6 +232,10 @@ export default function EditorToolbar(props: Props) {
     releaseKeyboard();
     panelRef.current = next; setPanel(next);
     const editor = field();
+    if (isMobile() && next === "link") {
+      editor?.blur();
+      return;
+    }
     if (isMobile() && editor && bookmark.current) {
       const offsets = readEditorSelection(editor, bookmark.current);
       keyboard.current = { editor, value: editor.getAttribute("inputmode") };
@@ -224,8 +257,9 @@ export default function EditorToolbar(props: Props) {
     closePanel();
   };
   const floatingSurface = floating || !!panel;
-  const controls = <div ref={surface} className={`lex-tools lex-tools-floating ${dock ? "lex-tools-docked" : ""} ${panel ? "lex-tools-expanded" : ""}`} style={floatingSurface ? position : undefined}>
-    <div className="lex-tools-row" role="toolbar" aria-label="텍스트 서식" onPointerDown={e => { if ((e.target as HTMLElement).closest("button")) { capture(); e.preventDefault(); } }}>
+  const controls = <div ref={surface} className={`lex-tools lex-tools-floating ${mobileLink ? "lex-link-dialog-content" : dock ? "lex-tools-docked" : ""} ${panel ? "lex-tools-expanded" : ""}`} style={floatingSurface ? position : undefined}>
+    {mobileLink && <header className="lex-link-dialog-header"><h2>링크 및 법령 연결</h2><button type="button" autoFocus aria-label="링크 입력 닫기" onClick={closePanel}><X size={20} /></button></header>}
+    <div hidden={mobileLink} className="lex-tools-row" role="toolbar" aria-label="텍스트 서식" onPointerDown={e => { if ((e.target as HTMLElement).closest("button")) { capture(); e.preventDefault(); } }}>
       {actions.map(([Icon, label, command]) => <button key={command} type="button" title={label} aria-label={label} aria-pressed={active.includes(command)} onClick={() => perform(() => props.runCommand(command))}><Icon size={18} strokeWidth={1.8} /></button>)}
 
       <button type="button" title="글자색 및 배경색" aria-label="글자색 및 배경색" aria-expanded={panel === "color"} onClick={() => toggle("color")}><Palette size={19} strokeWidth={1.8} /></button>
@@ -259,5 +293,7 @@ export default function EditorToolbar(props: Props) {
     </div>}
     {error && <p role="alert" className="lex-tool-error">{error}</p>}
   </div>;
-  return <><div ref={host} hidden aria-hidden="true" />{floatingSurface && createPortal(controls, dock ?? document.body)}</>;
+  return <><div ref={host} hidden aria-hidden="true" />{floatingSurface && createPortal(mobileLink ?
+    <dialog ref={linkDialog} className="lex-link-dialog" aria-label="링크 및 법령 연결" onCancel={e => { e.preventDefault(); closePanel(); }}>{controls}</dialog>
+    : controls, mobileLink ? document.body : dock ?? document.body)}</>;
 }

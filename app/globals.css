@@ -389,3 +389,14 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-eyebrow { display: none; }
  .lex-editor-overlay[data-keyboard-open="true"] .lex-editor-header { padding-block: 8px; }
 }
+
+/* A top-layer form owns link input focus; its geometry never follows keyboard events. */
+.lex-link-dialog { position: fixed; inset: 12px 12px auto; margin: 0 auto; width: calc(100% - 24px); max-width: 480px; max-height: calc(100svh - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid #e8e2ef; border-radius: 20px; background: white; color: #303236; }
+.lex-link-dialog::backdrop { background: #30323850; }
+.lex-link-dialog .lex-link-dialog-content { position: static; width: auto; padding: 0; border: 0; border-radius: 0; box-shadow: none; transform: none; max-height: none; overflow: visible; }
+.lex-link-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lex-link-dialog-header h2 { font-size: 17px; font-weight: 600; }
+.lex-link-dialog-header button { display: grid; place-items: center; width: 36px; height: 36px; }
+.lex-link-dialog .lex-tools-row { display: none; }
+.lex-link-dialog .lex-tools-panel { height: auto; padding: 0; overflow: visible; }
+.lex-link-dialog input { font-size: 16px; }
