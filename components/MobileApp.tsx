@@ -1605,6 +1605,33 @@ function MobileDetail({
   const [detailSwipeDragX, setDetailSwipeDragX] = useState(0);
   const [detailSwipeAnimating, setDetailSwipeAnimating] = useState(false);
 
+  // Compact windows (including installed desktop apps) can have a keyboard too.
+  useEffect(() => {
+    if (!question) return;
+
+    const handleDetailKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (
+        e.target instanceof Element &&
+        e.target.closest('input, textarea, select, button, a, [contenteditable="true"], [role="textbox"]')
+      ) return;
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        setShowAnswer(!showAnswer);
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const index = questions.findIndex((q) => q.id === question.id);
+        if (index === -1) return;
+        const adjacent = questions[index + (e.key === "ArrowLeft" ? -1 : 1)];
+        if (adjacent) setQuestionId(adjacent.id);
+      }
+    };
+
+    window.addEventListener("keydown", handleDetailKeyDown);
+    return () => window.removeEventListener("keydown", handleDetailKeyDown);
+  }, [question, questions, setQuestionId, setShowAnswer, showAnswer]);
+
   if (!question) return <Empty text="문제를 선택해줘." />;
 
   const currentIndex = questions.findIndex((q) => q.id === question.id);
