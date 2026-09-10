@@ -2239,7 +2239,7 @@ function NavigationDrawer({
                   className={`flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-[14px] font-bold ${
                     pageQuestion.answer === "O"
                       ? "bg-[#f0ebfa] text-[#76688e]"
-                      : "bg-[#f3e9dd] text-[#80664b]"
+                      : "bg-[#f8e8ee] text-[#a14f6a]"
                   }`}
                 >
                   {pageQuestion.answer}
