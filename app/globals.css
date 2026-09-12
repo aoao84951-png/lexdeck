@@ -431,10 +431,10 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 /* The leading separator is clipped at each wrapped row's edge. */
 .study-evidence li { position: relative; max-width: 100%; padding: 0 14px; color: #655079; font-size: 14px; font-weight: 600; line-height: 1.95; word-break: keep-all; overflow-wrap: anywhere; }
 .study-evidence li::before { content: ""; position: absolute; left: -1px; top: 8px; width: 1px; height: 12px; background: #e3dcea; }
-.study-evidence a, .study-evidence .law-auto-link { font-weight: inherit; color: inherit; text-decoration: underline; text-decoration-color: #d4c5e2; text-decoration-thickness: 1px; text-underline-offset: 4px; border: 0; background: transparent; cursor: pointer; }
+.study-evidence a, .study-evidence [data-law-name][data-article-no] { font-weight: inherit; color: inherit; text-decoration: underline; text-decoration-color: #d4c5e2; text-decoration-thickness: 1px; text-underline-offset: 4px; border: 0; background: transparent; cursor: pointer; }
 .study-evidence .study-evidence-arrow { display: inline-block; margin-left: 3px; color: inherit; font-size: 11px; font-weight: 400; line-height: 1; text-decoration: none; vertical-align: 1px; }
-.study-evidence a:hover, .study-evidence .law-auto-link:hover { color: #49305e; text-decoration-color: #9f85b6; }
-.study-evidence a:focus-visible, .study-evidence .law-auto-link:focus-visible { outline: 2px solid #b6a0d5; outline-offset: 3px; border-radius: 3px; }
+.study-evidence a:hover, .study-evidence [data-law-name][data-article-no]:hover { color: #49305e; text-decoration-color: #9f85b6; }
+.study-evidence a:focus-visible, .study-evidence [data-law-name][data-article-no]:focus-visible { outline: 2px solid #b6a0d5; outline-offset: 3px; border-radius: 3px; }
 .lex-evidence-editor { display: grid; gap: 22px; margin-top: 24px; }
 .lex-evidence-editor-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
 .lex-evidence-editor-heading h3 { padding-left: 6px; color: #596275; font-size: 12px; font-weight: 700; }
