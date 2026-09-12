@@ -119,7 +119,8 @@ select { font-family: inherit; }
 .lex-link-removal { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 8px; border-top: 1px solid #edf0f3; }
 .lex-link-removal button { display: flex; align-items: center; gap: 4px; min-height: 36px; font-size: 11px; }
 .lex-tool-error { padding: 0 12px 12px; color: #b44a3c; font-size: 12px; }
-@media (max-width: 1023px) {
+/* Layout breakpoint: keep in sync with components/responsiveLayout.ts. */
+@media (width < 768px) {
   .lex-editor-overlay { padding: 12px; }
   .lex-editor-dialog { max-height: calc(100dvh - 24px); border-radius: 22px; }
   .lex-editor-header { padding: 18px; }
@@ -156,7 +157,7 @@ select { font-family: inherit; }
 /* Shared study layout and navigation, inspired by the companion vocabulary app. */
 .lex-app { color: #303236; background: #fff; }
 .study-page { max-width: 900px; padding: 30px 28px 124px; }
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .study-page { max-width: none; }
 }
 .study-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 26px; min-height: 48px; }
@@ -372,7 +373,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
    behind its translucent controls, with or without the software keyboard. */
 .lex-selection-preview { margin: 10px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #76688e; }
 .lex-editor-scroll { display: contents; }
-@media (max-width: 1023px) {
+@media (width < 768px) {
  .lex-app:has(> .lex-editor-overlay) > .study-page { display: none; }
  .lex-editor-overlay { position: static; display: block; padding: 0; background: transparent; backdrop-filter: none; overflow: visible; box-shadow: none; }
  .lex-editor-dialog { position: static; display: block; height: auto; min-height: 100dvh; max-height: none; max-width: none; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { isMobileLayout } from "./responsiveLayout";
 
 // The mobile form scrolls with the document; only its controls track the viewport.
 export function useEditorViewport() {
@@ -11,7 +12,7 @@ export function useEditorViewport() {
     if (!element) return;
     const html = document.documentElement;
     const previousOverflow = html.style.overflow;
-    const mobile = window.innerWidth < 1024;
+    const mobile = isMobileLayout();
     html.style.overflow = mobile ? "auto" : "hidden";
     if (mobile) window.scrollTo(0, 0);
     const savedScroll = scrollBeforeOpen.current;
@@ -25,7 +26,7 @@ export function useEditorViewport() {
     let keyboardOpen = false;
     let frame = 0;
     const update = () => {
-      if (window.innerWidth >= 1024) {
+      if (!isMobileLayout()) {
         delete element.dataset.keyboardOpen;
         return;
       }

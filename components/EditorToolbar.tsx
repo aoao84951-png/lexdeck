@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import { createPortal } from "react-dom";
 import { Bold, Underline, Italic, Strikethrough, Palette, Link, Unlink, Scale, RemoveFormatting } from "lucide-react";
 import { X, Plus } from "./StudySymbols";
+import { DESKTOP_MEDIA_QUERY, isMobileLayout } from "./responsiveLayout";
 
 import { readEditorSelection, restoreEditorSelection, selectedEditorColors, paletteColorMatches, type EditorSelection } from "./editorSelection";
 
@@ -47,7 +48,7 @@ export default function EditorToolbar(props: Props) {
   const [revision, setRevision] = useState(0);
   const [selectedColors, setSelectedColors] = useState<{text: string | null; background: string | null}>({text: null, background: null});
   const field = () => host.current?.nextElementSibling as HTMLElement | null;
-  const isMobile = () => window.innerWidth < 1024;
+  const isMobile = isMobileLayout;
   const releaseKeyboard = () => {
     const previous = keyboard.current;
     if (!previous) return;
@@ -112,8 +113,8 @@ export default function EditorToolbar(props: Props) {
   };
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 1023px)");
-    const updateDock = () => setDock(media.matches ? host.current?.closest<HTMLElement>(".lex-editor-dialog") ?? null : null);
+    const media = window.matchMedia(DESKTOP_MEDIA_QUERY);
+    const updateDock = () => setDock(!media.matches ? host.current?.closest<HTMLElement>(".lex-editor-dialog") ?? null : null);
     updateDock();
     media.addEventListener("change", updateDock);
     return () => media.removeEventListener("change", updateDock);

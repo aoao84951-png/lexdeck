@@ -4,21 +4,23 @@ import { useEffect, useState } from "react";
 
 import MobileApp from "@/components/MobileApp";
 import DesktopApp from "@/components/DesktopApp";
+import { DESKTOP_MEDIA_QUERY } from "@/components/responsiveLayout";
 
 export default function Home() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
+    const media = window.matchMedia(DESKTOP_MEDIA_QUERY);
     const checkScreen = () => {
-      setIsDesktop(window.innerWidth >= 1024);
+      setIsDesktop(media.matches);
     };
 
     checkScreen();
 
-    window.addEventListener("resize", checkScreen);
+    media.addEventListener("change", checkScreen);
 
     return () => {
-      window.removeEventListener("resize", checkScreen);
+      media.removeEventListener("change", checkScreen);
     };
   }, []);
 
