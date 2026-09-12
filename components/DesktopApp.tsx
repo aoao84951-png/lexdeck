@@ -3438,7 +3438,7 @@ function ListAddIcon({
         <div
           role="dialog" aria-modal="true" aria-label="법령 조문"
           onClick={(e) => e.stopPropagation()}
-          className="mx-auto max-h-[78svh] w-[92%] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
+          className="mx-auto max-h-[78svh] w-full max-w-[720px] overflow-y-auto rounded-t-[30px] bg-white px-7 pb-[calc(26px+env(safe-area-inset-bottom))] pt-6 shadow-2xl"
         >
           <div className="flex items-start justify-between">
             <span className="ml-1 translate-y-[4px] rounded-full bg-[#e8e0f7] px-3.5 py-1.5 text-[13px] font-extrabold tracking-[-0.03em] text-[#76688e] shadow-[0_4px_14px_rgba(75,108,183,0.18)]">
