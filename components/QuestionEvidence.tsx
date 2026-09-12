@@ -55,6 +55,14 @@ function evidenceMarkup(html: string) {
     for (const property of ["color", "font-weight", "text-decoration", "text-underline-offset"]) link.style.removeProperty(property);
     link.tabIndex = 0;
   });
+  content.querySelectorAll<HTMLElement>('a[href], [data-law-name][data-article-no]').forEach(link => {
+    if (link.parentElement?.closest('a[href], [data-law-name][data-article-no]')) return;
+    const arrow = document.createElement("span");
+    arrow.className = "study-evidence-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "↗";
+    link.append(arrow);
+  });
   return content.innerHTML;
 }
 
