@@ -47,7 +47,7 @@ export function EvidenceEditor({ ref, initial, cleanHtml, renderEditor }: Editor
   </div>;
 }
 
-function evidenceMarkup(html: string) {
+function evidenceMarkup(html: string, kind: StudyEvidence["kind"]) {
   const content = document.createElement("div");
   content.innerHTML = html;
   content.querySelectorAll<HTMLElement>("[data-law-name][data-article-no]").forEach(link => {
@@ -55,6 +55,7 @@ function evidenceMarkup(html: string) {
     for (const property of ["color", "font-weight", "text-decoration", "text-underline-offset"]) link.style.removeProperty(property);
     link.tabIndex = 0;
   });
+  if (kind !== "case") return content.innerHTML;
   content.querySelectorAll<HTMLElement>('a[href], [data-law-name][data-article-no]').forEach(link => {
     if (link.parentElement?.closest('a[href], [data-law-name][data-article-no]')) return;
     const arrow = document.createElement("span");
@@ -81,7 +82,7 @@ export function QuestionEvidence({ items = [], formatHtml, onClick }: {
       const entries = items.filter(item => item.kind === kind);
       return entries.length ? <section className="study-evidence-group" aria-label={`${label} 근거`} key={kind}>
         <h3 className="study-evidence-label">{label}</h3>
-        <ul>{entries.map(item => <li key={item.id} dangerouslySetInnerHTML={{ __html: evidenceMarkup(formatHtml(item.html)) }} />)}</ul>
+        <ul>{entries.map(item => <li key={item.id} dangerouslySetInnerHTML={{ __html: evidenceMarkup(formatHtml(item.html), item.kind) }} />)}</ul>
       </section> : null;
     })}
   </div>;
