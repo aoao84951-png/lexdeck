@@ -6,6 +6,7 @@ import {MoreHorizontal} from "./StudySymbols";
 import {chapterPath,importance,studyText,type StudySubject,type StudyChapter,type StudyQuestion} from "./studyTypes";
 import {useTreeDrag} from "./useTreeDrag";
 import StudyTreeActions, {type TreeAction} from "./StudyTreeActions";
+import {acquireDocumentOverflow} from "./documentOverflow";
 type Panel="contents"|"add"|"search"|"stars"|null;
 type Props={onTreeAction:(action:TreeAction)=>void;subjects:StudySubject[];chapters:StudyChapter[];questions:StudyQuestion[];screen:string;subjectId:string;chapterId:string;hidden:boolean;onHome:()=>void;onSubject:(id:string)=>void;onChapter:(id:string)=>void;onQuestion:(id:string)=>void;onAddSubject:()=>void;onAddQuestion:(id:string)=>void;onAddFolder:(subjectId:string,parentId:string|null)=>void;onAddChapter:(subjectId:string,parentId:string|null,title:string)=>void;onManageSubject:(id:string)=>void;onManageChapter:(id:string)=>void;};
 export default function StudyNavigation(props:Props){
@@ -20,11 +21,11 @@ export default function StudyNavigation(props:Props){
  useEffect(()=>{const contents=()=>setPanel('contents');const close=()=>setPanel(null);window.addEventListener('lexdeck-open-contents',contents);window.addEventListener('popstate',close);return()=>{window.removeEventListener('lexdeck-open-contents',contents);window.removeEventListener('popstate',close);};},[]);
  useEffect(()=>{
   if(!panel||props.hidden)return;
-  const previous=document.activeElement as HTMLElement|null;const main=document.querySelector<HTMLElement>('.lex-app');const oldOverflow=main?.style.overflow;const html=document.documentElement;const oldHtmlOverflow=html.style.overflow;html.style.overflow='hidden';
+  const previous=document.activeElement as HTMLElement|null;const main=document.querySelector<HTMLElement>('.lex-app');const oldOverflow=main?.style.overflow;const releaseOverflow=acquireDocumentOverflow('hidden');
   if(main)main.style.overflow='hidden';
   root.current?.querySelector<HTMLButtonElement>('[aria-label="메뉴 닫기"]')?.focus({preventScroll:true});
   const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setPanel(null);return;}if(e.key==='Tab'&&root.current){const nodes=Array.from(root.current.querySelectorAll<HTMLElement>('button,input,select')).filter(el=>!(el as HTMLButtonElement).disabled);const first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
-  document.addEventListener('keydown',key);return()=>{html.style.overflow=oldHtmlOverflow;if(main)main.style.overflow=oldOverflow||'';document.removeEventListener('keydown',key);(trigger.current||previous)?.focus({preventScroll:true});};
+  document.addEventListener('keydown',key);return()=>{releaseOverflow();if(main)main.style.overflow=oldOverflow||'';document.removeEventListener('keydown',key);(trigger.current||previous)?.focus({preventScroll:true});};
  },[panel,props.hidden]);
  const dragStatus=useTreeDrag(root,panel==='contents'&&!props.hidden,props.chapters,props.onTreeAction,(id)=>setExpanded(value=>value.includes(id)?value:[...value,id]));
  const navigate=(run:()=>void)=>{close();run();};

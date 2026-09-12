@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 import { isMobileLayout } from "./responsiveLayout";
+import { acquireDocumentOverflow } from "./documentOverflow";
 
 // The mobile form scrolls with the document; only its controls track the viewport.
 export function useEditorViewport() {
@@ -10,10 +11,8 @@ export function useEditorViewport() {
   useLayoutEffect(() => {
     const element = overlay.current;
     if (!element) return;
-    const html = document.documentElement;
-    const previousOverflow = html.style.overflow;
     const mobile = isMobileLayout();
-    html.style.overflow = mobile ? "auto" : "hidden";
+    const releaseOverflow = acquireDocumentOverflow(mobile ? "auto" : "hidden");
     if (mobile) window.scrollTo(0, 0);
     const savedScroll = scrollBeforeOpen.current;
     const footer = element.querySelector<HTMLElement>(".lex-editor-footer");
@@ -59,8 +58,10 @@ export function useEditorViewport() {
     return () => {
       cancelAnimationFrame(frame);
       footerObserver.disconnect();
-      html.style.overflow = previousOverflow;
-      if (mobile) requestAnimationFrame(() => window.scrollTo(0, savedScroll));
+      releaseOverflow();
+      if (mobile) requestAnimationFrame(() => {
+        if (!document.querySelector(".lex-editor-overlay")) window.scrollTo(0, savedScroll);
+      });
       document.removeEventListener("focusin", focusChanged);
       document.removeEventListener("focusout", focusChanged);
       window.removeEventListener("resize", update);

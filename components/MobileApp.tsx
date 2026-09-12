@@ -1,4 +1,6 @@
 "use client";
+
+import { extraPointTitleHtml } from "./extraPointTitle";
 import {FolderForm,SubjectForm} from "./StudyFolderForm";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,6 +36,7 @@ type Chapter = {
 };
 
 type ExtraPoint = {
+  titleHtml?: string;
   category: string;
   title: string;
   descriptionHtml: string;
@@ -332,6 +335,7 @@ export default function MobileApp() {
   const didLongPressChapter = useRef(false);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [newQuestionKey, setNewQuestionKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [subjectFormOpen, setSubjectFormOpen] = useState(false);
@@ -1263,12 +1267,12 @@ export default function MobileApp() {
 
         {formOpen && (
           <QuestionForm
-            key={editingId ?? "new"}
+            key={editingId ?? `new-${newQuestionKey}`}
             question={questions.find((q) => q.id === editingId)}
             defaultSubjectId={subjectId}
             defaultChapterId={chapterId}
             onClose={() => setFormOpen(false)}
-            onSave={(saved) => {
+            onSave={(saved, keepAdding) => {
               if (editingId) {
                 updateQuestion(editingId, saved);
                 setQuestionId(editingId);
@@ -1291,6 +1295,12 @@ export default function MobileApp() {
                   },
                 ]);
                 setQuestionId(id);
+              }
+
+              if (keepAdding && !editingId) {
+                setNewQuestionKey(value => value + 1);
+                setScreen("questions");
+                return;
               }
 
               setShowAnswer(false);
@@ -2022,7 +2032,7 @@ function MobileDetail({
                             <JustifiedText
                               className="min-w-0 flex-1 text-[13px] font-bold text-[#111827]"
                               html={linkLawText(
-                                point.title,
+                                extraPointTitleHtml(point),
                                 displayQuestion.disabledAutoLinks ?? [],
                               )}
                               onClick={handleLawClick}
@@ -2149,14 +2159,15 @@ function QuestionForm({
   defaultSubjectId: string;
   defaultChapterId: string;
   onClose: () => void;
-  onSave: (q: Partial<Question>) => void;
+  onSave: (q: Partial<Question>, keepAdding?: boolean) => void;
 }) {
   const editorOverlay = useEditorViewport();
   const [answer, setAnswer] = useState<Answer>(question?.answer ?? "O");
-  const [extraPoints, setExtraPoints] = useState<ExtraPoint[]>(
-    question?.extraPoints?.length ? question.extraPoints : [],
+  const [extraPoints, setExtraPoints] = useState<(ExtraPoint & { editorKey: string })[]>(() =>
+    (question?.extraPoints ?? []).map(point => ({ ...point, editorKey: uid() }))
   );
   const extraPointRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const extraPointTitleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const [disabledAutoLinks, setDisabledAutoLinks] = useState<string[]>(
     question?.disabledAutoLinks ?? [],
@@ -2166,6 +2177,7 @@ function QuestionForm({
     setExtraPoints((prev) => [
       ...prev,
       {
+        editorKey: uid(),
         category: "기타",
         title: "",
         descriptionHtml: "",
@@ -2186,7 +2198,7 @@ function QuestionForm({
   };
 
   const removeExtraPoint = (index: number) => {
-    const snapshots = extraPoints.map((point, i) => ({ ...point, descriptionHtml: extraPointRefs.current[i]?.innerHTML ?? point.descriptionHtml }));
+    const snapshots = extraPoints.map((point, i) => ({ ...point, titleHtml: extraPointTitleRefs.current[i]?.innerHTML ?? extraPointTitleHtml(point), descriptionHtml: extraPointRefs.current[i]?.innerHTML ?? point.descriptionHtml }));
     setExtraPoints(snapshots.filter((_, i) => i !== index));
   };
   const [customColors, setCustomColors] = useState<string[]>([]);
@@ -2413,6 +2425,21 @@ function QuestionForm({
     });
   };
 
+  const submit = (keepAdding = false) => onSave({
+    subjectId: defaultSubjectId,
+    chapterId: defaultChapterId,
+    answer,
+    textHtml: cleanEditorHtml(textRef.current?.innerHTML ?? ""),
+    explanationHtml: cleanEditorHtml(explanationRef.current?.innerHTML ?? ""),
+    extraPoints: extraPoints.map((point, index) => ({
+      category: point.category.trim(),
+      title: extraPointTitleRefs.current[index]?.textContent?.trim() ?? point.title.trim(),
+      titleHtml: cleanEditorHtml(extraPointTitleRefs.current[index]?.innerHTML ?? extraPointTitleHtml(point)),
+      descriptionHtml: cleanEditorHtml(extraPointRefs.current[index]?.innerHTML?.trim() ?? ""),
+    })).filter(point => point.title || point.descriptionHtml),
+    disabledAutoLinks,
+  }, keepAdding);
+
   return (
     <div ref={editorOverlay} className="lex-editor-overlay fixed inset-0 z-50">
       <div role="dialog" aria-modal="true" aria-label={question ? "문제 수정" : "문제 추가"} className="lex-editor-dialog">
@@ -2498,7 +2525,7 @@ function QuestionForm({
             <div className="space-y-3">
               {extraPoints.map((point, index) => (
                 <div
-                  key={index}
+                  key={point.editorKey}
                   className="lex-extra-point rounded-2xl border border-[#e5e5e1] p-4"
                 >
                   <div className="flex gap-2">
@@ -2522,15 +2549,25 @@ function QuestionForm({
                     </button>
                   </div>
 
-                  <input
-                    value={point.title}
-                    onChange={(e) =>
-                      updateExtraPoint(index, "title", e.target.value)
-                    }
-                    aria-label="추가 포인트 제목"
-                    placeholder="제목"
-                    className="mt-3 h-11 w-full rounded-xl border border-[#e5e5e1] px-3 text-[13px] outline-none"
-                  />
+                  <div className="mt-3">
+                    <EditorToolbar
+                      runCommand={runCommand}
+                      insertLink={insertLink}
+                      insertLawLink={insertLawLink}
+                      unlinkLawLink={unlinkLawLink}
+                      customColors={customColors}
+                      saveCustomColors={saveCustomColors}
+                      unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink}
+                      saveSelection={saveSelection}
+                    />
+                    <EditorBox
+                      setRef={el => { extraPointTitleRefs.current[index] = el; }}
+                      defaultHtml={unwrapLawAutoLinks(extraPointTitleHtml(point))}
+                      placeholder="추가 포인트 제목"
+                      compact
+                      onClick={handleDisableAutoLinkInEditor}
+                    />
+                  </div>
 
                   <div className="mt-2">
                     <EditorToolbar
@@ -2568,31 +2605,16 @@ function QuestionForm({
           </button>
 
           <button
-            onClick={() =>
-              onSave({
-                subjectId: defaultSubjectId,
-                chapterId: defaultChapterId,
-                answer,
-                textHtml: cleanEditorHtml(textRef.current?.innerHTML ?? ""),
-                explanationHtml: cleanEditorHtml(
-                  explanationRef.current?.innerHTML ?? "",
-                ),
-                extraPoints: extraPoints
-                  .map((point, index) => ({
-                    category: point.category.trim(),
-                    title: point.title.trim(),
-                    descriptionHtml: cleanEditorHtml(
-                      extraPointRefs.current[index]?.innerHTML?.trim() ?? "",
-                    ),
-                  }))
-                  .filter((point) => point.title || point.descriptionHtml),
-                disabledAutoLinks,
-              })
-            }
+            onClick={() => submit()}
             className="h-11 rounded-full bg-[#e8e0f7] px-5 text-[13px] font-bold text-[#69567f]"
           >
             저장
           </button>
+          {!question && <button
+            type="button"
+            onClick={() => submit(true)}
+            className="h-11 rounded-full bg-[#e8e0f7] px-4 text-[13px] font-bold text-[#69567f]"
+          >저장 후 계속 추가</button>}
         </footer>
         </div>
       </div>
@@ -2617,12 +2639,14 @@ function Label({
 }
 
 function EditorBox({
+  compact = false,
   refObj,
   setRef,
   defaultHtml,
   placeholder,
   onClick,
 }: {
+  compact?: boolean;
   refObj?: React.RefObject<HTMLDivElement | null>;
   setRef?: (el: HTMLDivElement | null) => void;
   defaultHtml: string;
@@ -2665,7 +2689,7 @@ function EditorBox({
       contentEditable
       suppressContentEditableWarning
       data-placeholder={placeholder}
-      className="lex-editor-field min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]"
+      className={`${compact ? "lex-editor-title " : ""}lex-editor-field min-h-[130px] w-full whitespace-pre-wrap rounded-b-[18px] border border-t-0 border-[#dce2ee] bg-white px-4 py-4 text-[14px] leading-[1.9] text-[#303236] outline-none empty:before:text-[#a3abb8] empty:before:content-[attr(data-placeholder)]`}
     />
   );
 }
