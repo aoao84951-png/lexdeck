@@ -144,7 +144,11 @@ export default function EditorToolbar(props: Props) {
       if (event.target instanceof HTMLElement && event.target.matches('[contenteditable="true"]') && event.target !== field()) hide();
     };
     document.addEventListener("focusin", focus);
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") hide(); };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented || event.isComposing || !surface.current) return;
+      event.preventDefault();
+      hide();
+    };
     document.addEventListener("selectionchange", update); document.addEventListener("pointerup", update);
     document.addEventListener("pointerdown", outside); document.addEventListener("keydown", escape);
     return () => {

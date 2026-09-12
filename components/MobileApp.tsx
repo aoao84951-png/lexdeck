@@ -12,6 +12,7 @@ import StudyHeader from "./StudyHeader";
 import StudyNavigation from "./StudyNavigation";
 import StudyHome from "./StudyHome";
 import EditorToolbar from "./EditorToolbar";
+import { useEscapeClose } from "./useEscapeClose";
 import { useEditorViewport } from "./useEditorViewport";
 import { FontSwitcher } from "./FontPreference";
 import { supabase } from "@/app/lib/supabase";
@@ -2169,6 +2170,7 @@ function QuestionForm({
   onClose: () => void;
   onSave: (q: Partial<Question>, keepAdding?: boolean) => void;
 }) {
+  useEscapeClose(onClose);
   const editorOverlay = useEditorViewport();
   const [answer, setAnswer] = useState<Answer>(question?.answer ?? "O");
   const [extraPoints, setExtraPoints] = useState<(ExtraPoint & { editorKey: string })[]>(() =>
@@ -3148,6 +3150,7 @@ function LawArticleModal({
   article: LawArticle;
   onClose: () => void;
 }) {
+  useEscapeClose(onClose);
   return (
     <div
       onClick={onClose}
