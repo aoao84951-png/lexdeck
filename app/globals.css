@@ -436,6 +436,9 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .lex-evidence-editor-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 12px; }
 .lex-evidence-editor-heading h3 { padding-left: 6px; color: #596275; font-size: 12px; font-weight: 700; }
 .lex-evidence-editor-heading > button { padding: 5px 10px; border-radius: 999px; background: #f5f2f9; color: #76688e; font-size: 11px; }
-.lex-evidence-editor-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
-.lex-evidence-editor-field { min-width: 0; flex: 1; }
-.lex-evidence-remove { flex: 0 0 32px; height: 44px; color: #9699a1; font-size: 18px; }
+.lex-evidence-editor-row { position: relative; margin-top: 8px; }
+.lex-evidence-editor-field { min-width: 0; width: 100%; }
+.lex-evidence-editor-field .lex-editor-field { padding-right: 48px; }
+.lex-evidence-remove { position: absolute; top: 8px; right: 10px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 999px; background: #f5f2f9; color: #8b7b9c; font-size: 18px; line-height: 1; }
+.lex-evidence-remove:hover { background: #eae3f3; color: #69567f; }
+.lex-evidence-remove:focus-visible { outline: 2px solid #b6a0d5; outline-offset: 2px; }
