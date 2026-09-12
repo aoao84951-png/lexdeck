@@ -445,3 +445,10 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .lex-evidence-remove { position: absolute; top: 8px; right: 10px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 999px; background: #f5f2f9; color: #8b7b9c; font-size: 18px; line-height: 1; }
 .lex-evidence-remove:hover { background: #eae3f3; color: #69567f; }
 .lex-evidence-remove:focus-visible { outline: 2px solid #b6a0d5; outline-offset: 2px; }
+
+.study-add-location { display: flex; align-items: baseline; gap: 10px; margin: 0 0 16px; padding: 10px 12px; border-radius: 12px; background: #f5f1fa; color: #76608e; font-size: 13px; }
+.study-add-location > span { flex-shrink: 0; font-size: 11px; }
+.study-add-location strong { min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.study-add-destination[aria-current="location"] { padding-inline: 12px; border-radius: 12px; background: #f0ebfa; border-color: transparent; color: #69567f; font-weight: 600; }
+.study-add-path { min-width: 0; overflow-wrap: anywhere; }
+.study-add-current { flex-shrink: 0; margin-left: auto; white-space: nowrap; color: #827197; font-size: 10px; font-weight: 500; }

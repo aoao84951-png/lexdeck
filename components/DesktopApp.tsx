@@ -1330,7 +1330,7 @@ useEffect(() => {
         />
       )}
     </main>
-<StudyNavigation subjects={subjects} chapters={chapters} questions={questions} screen={screen} subjectId={subjectId} chapterId={chapterId}
+<StudyNavigation currentParentId={currentParentId} subjects={subjects} chapters={chapters} questions={questions} screen={screen} subjectId={subjectId} chapterId={chapterId}
         hidden={formOpen || subjectFormOpen || folderFormOpen || lawModalOpen || !!actionSubjectId || !!actionChapterId || !!movingChapterId}
         onHome={goHome} onSubject={selectSubject} onChapter={navigateStudyChapter} onQuestion={navigateStudyQuestion}
         onAddSubject={addSubject}
