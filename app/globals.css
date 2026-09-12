@@ -404,3 +404,14 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .lex-link-dialog .lex-tools-row { display: none; }
 .lex-link-dialog .lex-tools-panel { height: auto; padding: 0; overflow: visible; }
 .lex-link-dialog input { font-size: 16px; }
+
+/* Long-press tree movement: retain touch scrolling before activation. */
+[data-chapter-id] > .study-tree-name { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab; }
+.study-tree-row[data-dragging] { opacity: .45; cursor: grabbing; }
+.study-tree-row[data-dragging] + .study-tree-children { opacity: .45; }
+.study-tree-row[data-drop] { position: relative; }
+.study-tree-row[data-drop="inside"] { background: #eee7fa; outline: 2px solid #b6a0d5; outline-offset: -2px; }
+.study-tree-row[data-drop="before"]::before,
+.study-tree-row[data-drop="after"]::after { content: ''; position: absolute; left: 0; right: 0; height: 3px; background: #9878c0; border-radius: 3px; pointer-events: none; }
+.study-tree-row[data-drop="before"]::before { top: 0; }
+.study-tree-row[data-drop="after"]::after { bottom: 0; }

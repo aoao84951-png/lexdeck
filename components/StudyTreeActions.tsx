@@ -4,7 +4,7 @@ import { FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { CornerUpRight, X, ArrowUp, ArrowDown } from "./StudySymbols";
 import {FolderSymbolPicker} from "./FolderSymbols";
 import {chapterPath,type StudyChapter,type StudySubject} from "./studyTypes";
-export type TreeAction={kind:'add'|'edit'|'move'|'delete'|'up'|'down';id:string;subject:boolean;title?:string;icon?:string;desc?:string;targetSubjectId?:string;type?:'folder'|'chapter';parentId?:string|null};
+export type TreeAction={kind:'add'|'edit'|'move'|'delete'|'up'|'down';id:string;subject:boolean;title?:string;icon?:string;desc?:string;targetSubjectId?:string;type?:'folder'|'chapter';parentId?:string|null;relativeId?:string;placement?:'before'|'after'};
 export default function StudyTreeActions({id,subject,title:original,icon:originalIcon,desc:originalDesc,chapters,subjects,subjectId,onAction,onClose}:{id:string;subject:boolean;title:string;icon?:string;desc?:string;chapters:StudyChapter[];subjects:StudySubject[];subjectId:string;onAction:(action:TreeAction)=>void;onClose:()=>void}){
  const [mode,setMode]=useState<TreeAction['kind']|null>(null),[title,setTitle]=useState(original),[icon,setIcon]=useState(originalIcon??'#'),[desc,setDesc]=useState(originalDesc??''),[symbols,setSymbols]=useState(false),[type,setType]=useState<'chapter'|'folder'>('chapter'),[parent,setParent]=useState('');
  const excluded=new Set([id]);let size=0;while(size!==excluded.size){size=excluded.size;chapters.forEach(c=>{if(c.parentId&&excluded.has(c.parentId))excluded.add(c.id);});}

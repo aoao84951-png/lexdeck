@@ -1341,7 +1341,16 @@ useEffect(() => {
               const original = subjects.find(s=>s.id===action.id); if (!original) return;
               setSubjects(prev=>prev.filter(s=>s.id!==action.id));
               setChapters(prev=>[...prev.map(c=>ids.includes(c.id)?{...c,subjectId:destination,parentId:c.parentId??action.id}:c),{id:action.id,subjectId:destination,parentId:action.parentId??null,title:original.name,type:"folder",icon:original.icon,desc:original.desc}]);
-            } else setChapters(prev=>prev.map(c=>ids.includes(c.id)?{...c,subjectId:destination,...(c.id===action.id?{parentId:action.parentId??null}:{})}:c));
+            } else setChapters(prev=>{
+              const updated = prev.map(c=>ids.includes(c.id)?{...c,subjectId:destination,...(c.id===action.id?{parentId:action.parentId??null}:{})}:c);
+              if (!action.relativeId) return updated;
+              const moving = updated.find(c=>c.id===action.id)!;
+              const remaining = updated.filter(c=>c.id!==action.id);
+              const index = remaining.findIndex(c=>c.id===action.relativeId && c.subjectId===destination && c.parentId===moving.parentId);
+              if (index<0) return updated;
+              remaining.splice(index+(action.placement==='after'?1:0),0,moving);
+              return remaining;
+            });
             setQuestions(prev=>prev.map(q=>(action.subject?q.subjectId===sid:ids.includes(q.chapterId))?{...q,subjectId:destination}:q));
             if (ids.includes(chapterId)||subjectId===sid&&action.subject) {setSubjectId(destination);if(chapterId===action.id)setCurrentParentId(action.parentId??null);}
           } else if (action.kind === "delete") {
