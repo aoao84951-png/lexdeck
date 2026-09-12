@@ -1,5 +1,6 @@
 "use client";
 
+import { useDetailScroll } from "./useDetailScroll";
 import { extraPointTitleHtml } from "./extraPointTitle";
 import {FolderForm,SubjectForm} from "./StudyFolderForm";
 
@@ -323,6 +324,7 @@ export default function DesktopApp() {
   const didLongPressChapter = useRef(false);
 
   const [formOpen, setFormOpen] = useState(false);
+  useDetailScroll(screen, questionId, formOpen);
   const [newQuestionKey, setNewQuestionKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -962,13 +964,13 @@ useEffect(() => {
     <>
     <main data-study-screen={screen} className="lex-app min-h-[100svh] bg-white text-[#111827]">
         <section className="study-page mx-auto min-h-[100svh] w-full">
-            <div className="min-h-[calc(100svh-64px)] bg-white">
+            <div className="study-detail-shell min-h-[calc(100svh-64px)] bg-white">
 
 
 
 
-            <div className="min-h-[calc(100svh-128px)]">
-            <div className="min-w-0">
+            <div className="study-detail-shell min-h-[calc(100svh-128px)]">
+            <div className="study-detail-shell min-w-0">
         {screen !== "home" && (<StudyHeader
           unmemorized={onlyUnmemorized}
             onToggleView={screen === "detail" || screen === "questions" ? () => {
@@ -1203,7 +1205,7 @@ useEffect(() => {
         )}
 
             {screen === "detail" && (
-            <div className="mt-5 w-full">
+            <div className="study-detail-section w-full">
 
               <MobileDetail
                 question={selectedQuestion}
@@ -2179,7 +2181,7 @@ function NavigationDrawer({
       const lawClick = interactive ? handleLawClick(pageQuestion) : undefined;
 
       return (
-        <div className="min-h-[calc(100svh-240px)]">
+        <div className="min-h-full">
           <section
             className={`relative rounded-[22px] border px-5 py-5 shadow-[0_2px_10px_rgba(15,23,42,0.03)] ${
               pageImportanceStars
@@ -2334,7 +2336,7 @@ function NavigationDrawer({
     return (
       <div
         ref={pagerRef}
-        className="relative min-h-[calc(100svh-240px)] w-full overflow-clip"
+        className="study-detail-viewport relative w-full overflow-clip"
         style={{
           touchAction: pagerDragging ? "pan-x" : "pan-y",
           WebkitOverflowScrolling: "touch",

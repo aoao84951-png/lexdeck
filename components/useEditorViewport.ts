@@ -60,7 +60,11 @@ export function useEditorViewport() {
       footerObserver.disconnect();
       releaseOverflow();
       if (mobile) requestAnimationFrame(() => {
-        if (!document.querySelector(".lex-editor-overlay")) window.scrollTo(0, savedScroll);
+        // Detail navigation owns its starting position, including after saving.
+        if (!document.querySelector(".lex-editor-overlay") &&
+          document.querySelector(".lex-app")?.getAttribute("data-study-screen") !== "detail") {
+          window.scrollTo(0, savedScroll);
+        }
       });
       document.removeEventListener("focusin", focusChanged);
       document.removeEventListener("focusout", focusChanged);

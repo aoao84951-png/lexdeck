@@ -1,5 +1,6 @@
 "use client";
 
+import { useDetailScroll } from "./useDetailScroll";
 import { extraPointTitleHtml } from "./extraPointTitle";
 import {FolderForm,SubjectForm} from "./StudyFolderForm";
 
@@ -335,6 +336,7 @@ export default function MobileApp() {
   const didLongPressChapter = useRef(false);
 
   const [formOpen, setFormOpen] = useState(false);
+  useDetailScroll(screen, questionId, formOpen);
   const [newQuestionKey, setNewQuestionKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -1210,7 +1212,7 @@ export default function MobileApp() {
           )}
 
           {screen === "detail" && (
-            <div className="mt-3">
+            <div className="study-detail-section">
 
               <MobileDetail
                 question={selectedQuestion}

@@ -289,7 +289,6 @@ select { font-family: inherit; }
  .study-field-label input, .study-field-label select { font-size: 16px; }
 }
 
-.lex-app[data-study-screen="detail"] .study-detail-viewport { height: calc(100dvh - 210px - env(safe-area-inset-bottom)); min-height: 260px; }
 
 
 /* Companion symbols with lavender star fills; normal letters keep the reading font. */
@@ -359,7 +358,12 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-explanation .text-\[\#596275\] { color: #515b65; }
 
 /* One native vertical scroll surface; horizontal study swipes remain local. */
-.lex-app[data-study-screen="detail"] .study-detail-viewport { height: auto; min-height: calc(100dvh - 190px); overflow: clip; touch-action: pan-y; }
+/* Fill the space remaining below the header, without adding a second viewport
+   height on top of the page padding. Long questions and answers still grow. */
+.lex-app[data-study-screen="detail"] .study-page { display: flex; flex-direction: column; }
+.lex-app[data-study-screen="detail"] .study-detail-shell { display: contents; }
+.study-detail-section { display: flex; flex-direction: column; flex: 1; }
+.lex-app[data-study-screen="detail"] .study-detail-viewport { flex: 1; min-height: 0; overflow: clip; touch-action: pan-y; }
 .study-settings-panel { width: 260px; max-width: calc(100vw - 40px); max-height: calc(100dvh - 150px); overflow-y: auto; }
 .study-settings-panel hr { border: 0; border-top: 1px solid #e8e2ef; margin: 8px 0; }
 
