@@ -31,7 +31,7 @@ export default function StudyNavigation(props:Props){
  const navigate=(run:()=>void)=>{close();run();};
  const toggle=(id:string)=>setExpanded(value=>value.includes(id)?value.filter(x=>x!==id):[...value,id]);
  const results=props.questions.filter(q=>{
-  const searchable=[q.textHtml,q.explanationHtml,...(q.extraPoints||[]).flatMap(p=>[p.category,p.title,p.descriptionHtml]),props.subjects.find(s=>s.id===q.subjectId)?.name||'',chapterPath(q.chapterId,props.chapters)].map(studyText).join(' ').toLocaleLowerCase();
+  const searchable=[q.textHtml,q.explanationHtml,...(q.evidence||[]).map(item=>item.html),...(q.extraPoints||[]).flatMap(p=>[p.category,p.title,p.descriptionHtml]),props.subjects.find(s=>s.id===q.subjectId)?.name||'',chapterPath(q.chapterId,props.chapters)].map(studyText).join(' ').toLocaleLowerCase();
   return searchable.includes(query.trim().toLocaleLowerCase())&&(panel!=='stars'||!onlyUnmemorized||!q.memorized)&&(panel!=='stars'||importance(q)>0&&(!stars||importance(q)===stars));
  });
  const tree=(sid:string,parent:string|null,seen:string[]=[]):React.ReactNode=>props.chapters.filter(c=>c.subjectId===sid&&c.parentId===parent&&!seen.includes(c.id)).map(c=>{

@@ -1,5 +1,7 @@
 "use client";
 
+import { EvidenceEditor, QuestionEvidence, type EvidenceEditorHandle } from "./QuestionEvidence";
+import type { StudyEvidence } from "./studyTypes";
 import { useDetailScroll } from "./useDetailScroll";
 import { extraPointTitleHtml } from "./extraPointTitle";
 import {FolderForm,SubjectForm} from "./StudyFolderForm";
@@ -43,6 +45,7 @@ type ExtraPoint = {
   descriptionHtml: string;
 };
 type Question = {
+  evidence?: StudyEvidence[];
   id: string;
   subjectId: string;
   chapterId: string;
@@ -599,6 +602,7 @@ useEffect(() => {
         chapter?.title,
         stripHtml(q.textHtml),
         stripHtml(q.explanationHtml),
+        ...(q.evidence ?? []).map(item => stripHtml(item.html)),
         ...(q.extraPoints ?? []).flatMap((point) => [
           point.category,
           point.title,
@@ -1303,6 +1307,7 @@ useEffect(() => {
                   answer: saved.answer ?? "O",
                   explanationHtml: saved.explanationHtml ?? "",
                   extraPoints: saved.extraPoints ?? [],
+                  evidence: saved.evidence ?? [],
                   favorite: false,
                   importanceStars: 0,
                   memorized: false,
@@ -2277,6 +2282,7 @@ function NavigationDrawer({
                   html={linkLawText(pageQuestion.explanationHtml, pageQuestion.disabledAutoLinks ?? [])}
                   onClick={lawClick}
                 />
+                <QuestionEvidence items={pageQuestion.evidence} formatHtml={html => linkLawText(html, pageQuestion.disabledAutoLinks ?? [])} onClick={lawClick} />
                 {(pageQuestion.extraPoints ?? []).length > 0 && (
                   <div className="mt-6">
                     <p className="mb-3 pl-[1px] text-[13px] font-bold text-[#8a94a6]">
@@ -2690,12 +2696,15 @@ const runCommand = (command: string, value?: string) => {
   };
 
 
+  const evidenceRef = useRef<EvidenceEditorHandle>(null);
+
   const submit = (keepAdding = false) => onSave({
     subjectId: defaultSubjectId,
     chapterId: defaultChapterId,
     answer,
     textHtml: cleanEditorHtml(textRef.current?.innerHTML ?? ""),
     explanationHtml: cleanEditorHtml(explanationRef.current?.innerHTML ?? ""),
+    evidence: evidenceRef.current?.getValues() ?? [],
     extraPoints: extraPoints.map((point, index) => ({
       category: point.category.trim(),
       title: extraPointTitleRefs.current[index]?.textContent?.trim() ?? point.title.trim(),
@@ -2771,6 +2780,14 @@ const runCommand = (command: string, value?: string) => {
             defaultHtml={unwrapLawAutoLinks(question?.explanationHtml ?? "")}
             placeholder="해설을 입력해줘."
           />
+          <EvidenceEditor ref={evidenceRef} initial={question?.evidence ?? []} cleanHtml={cleanEditorHtml}
+            renderEditor={(html, label) => <>
+              <EditorToolbar runCommand={runCommand} insertLink={insertLink} insertLawLink={insertLawLink}
+                unlinkLawLink={unlinkLawLink} customColors={customColors} saveCustomColors={saveCustomColors}
+                unlinkSelectedAutoLawLink={unlinkSelectedAutoLawLink} saveSelection={saveSelection} />
+              <EditorBox defaultHtml={unwrapLawAutoLinks(html)} placeholder={label} compact
+                onClick={handleDisableAutoLinkInEditor} />
+            </>} />
           <div className="mt-5">
             <div className="mb-2 flex items-center justify-between">
                 <p className="pl-1.5 text-[12px] font-bold text-[#596275]">
