@@ -58,7 +58,7 @@ function evidenceMarkup(html: string) {
   content.querySelectorAll<HTMLElement>('a[href], [data-law-name][data-article-no]').forEach(link => {
     if (link.parentElement?.closest('a[href], [data-law-name][data-article-no]')) return;
     const arrow = document.createElement("span");
-    arrow.className = "study-evidence-arrow";
+    arrow.className = "study-symbol study-evidence-arrow";
     arrow.setAttribute("aria-hidden", "true");
     arrow.textContent = "↗";
     link.append(arrow);
