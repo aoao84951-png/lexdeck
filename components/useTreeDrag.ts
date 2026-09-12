@@ -12,6 +12,8 @@ export function useTreeDrag(root:RefObject<HTMLElement|null>,enabled:boolean,cha
   const panel=root.current;if(!enabled||!panel)return;
   let source:HTMLElement|null=null,active=false,startX=0,startY=0,x=0,y=0;
   let timer:ReturnType<typeof setTimeout>|undefined,frame=0,suppressUntil=0;
+  let statusTimer:ReturnType<typeof setTimeout>|undefined;
+  const announce=(message:string,temporary=false)=>{clearTimeout(statusTimer);setStatus(message);if(temporary)statusTimer=setTimeout(()=>setStatus(''),2500);};
   let marked:HTMLElement|null=null,drop:TreeAction|null=null,hoverId='',hoverAt=0;
   const excluded=new Set<string>();
   const clearMark=()=>{marked?.removeAttribute('data-drop');marked=null;drop=null;};
@@ -50,11 +52,11 @@ export function useTreeDrag(root:RefObject<HTMLElement|null>,enabled:boolean,cha
     let size=0;while(size!==excluded.size){size=excluded.size;latest.current.chapters.forEach(c=>{if(c.parentId&&excluded.has(c.parentId))excluded.add(c.id);});}
     active=true;source.dataset.dragging='true';suppressUntil=Date.now()+1000;
     window.getSelection()?.removeAllRanges();
-    setStatus('이동 중 · 원하는 위치에 놓으세요 · Esc로 취소');tick();
+    announce('이동 중 · 원하는 위치에 놓으세요 · Esc로 취소');tick();
    },450);
   };
   const move=(event:Event,px:number,py:number)=>{x=px;y=py;if(active){if(event.cancelable)event.preventDefault();}else if(Math.hypot(x-startX,y-startY)>8)reset();};
-  const finish=(cancel=false)=>{const action=active&&!cancel?drop:null;const wasActive=active;if(active)suppressUntil=Date.now()+800;reset();if(action){latest.current.onMove(action);if(action.parentId)latest.current.onExpand(action.parentId);else if(action.targetSubjectId)latest.current.onExpand(action.targetSubjectId);setStatus('목차와 하위 목차를 함께 이동했어요.');}else if(wasActive)setStatus('이동을 취소했어요.');};
+  const finish=(cancel=false)=>{const action=active&&!cancel?drop:null;const wasActive=active;if(active)suppressUntil=Date.now()+800;reset();if(action){latest.current.onMove(action);if(action.parentId)latest.current.onExpand(action.parentId);else if(action.targetSubjectId)latest.current.onExpand(action.targetSubjectId);announce('목차와 하위 목차를 함께 이동했어요.',true);}else if(wasActive)announce('이동을 취소했어요.',true);};
   const touchStart=(e:TouchEvent)=>{if(e.touches.length!==1){finish(true);return;}begin(e.target,e.touches[0].clientX,e.touches[0].clientY);};
   const touchMove=(e:TouchEvent)=>{if(e.touches.length!==1){finish(true);return;}move(e,e.touches[0].clientX,e.touches[0].clientY);};
   const touchEnd=()=>finish();const cancel=()=>finish(true);
@@ -70,7 +72,7 @@ export function useTreeDrag(root:RefObject<HTMLElement|null>,enabled:boolean,cha
   panel.addEventListener('pointerdown',pointerDown);document.addEventListener('pointermove',pointerMove);document.addEventListener('pointerup',pointerUp);
   panel.addEventListener('click',click,true);panel.addEventListener('contextmenu',context);panel.addEventListener('dragstart',context);
   document.addEventListener('keydown',key);window.addEventListener('blur',cancel);
-  return()=>{reset();panel.removeEventListener('touchstart',touchStart);document.removeEventListener('touchmove',touchMove);document.removeEventListener('touchend',touchEnd);document.removeEventListener('touchcancel',cancel);panel.removeEventListener('pointerdown',pointerDown);document.removeEventListener('pointermove',pointerMove);document.removeEventListener('pointerup',pointerUp);panel.removeEventListener('click',click,true);panel.removeEventListener('contextmenu',context);panel.removeEventListener('dragstart',context);document.removeEventListener('keydown',key);window.removeEventListener('blur',cancel);};
+  return()=>{reset();clearTimeout(statusTimer);setStatus('');panel.removeEventListener('touchstart',touchStart);document.removeEventListener('touchmove',touchMove);document.removeEventListener('touchend',touchEnd);document.removeEventListener('touchcancel',cancel);panel.removeEventListener('pointerdown',pointerDown);document.removeEventListener('pointermove',pointerMove);document.removeEventListener('pointerup',pointerUp);panel.removeEventListener('click',click,true);panel.removeEventListener('contextmenu',context);panel.removeEventListener('dragstart',context);document.removeEventListener('keydown',key);window.removeEventListener('blur',cancel);};
  },[enabled,root]);
  return status;
 }
