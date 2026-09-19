@@ -298,6 +298,17 @@ select { font-family: inherit; }
  font-weight: 100 900; font-style: normal; font-display: swap;
  unicode-range: U+0021-002F, U+003A-0040, U+005B-0060, U+007B-007E, U+2000-2BFF, U+E000-F8FF;
 }
+/* iOS/iPadOS WebKit: use the same outlines without the color/SVG font renderer.
+   Keep this face last so it replaces the color face on these devices, including
+   Chrome and home-screen apps. A distinct URL also bypasses old font caches. */
+@supports (-webkit-touch-callout: none) {
+ @font-face {
+  font-family: "Summer Symbols";
+  src: url("/fonts/aa-summer-symbols-outline-v1.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+  unicode-range: U+0021-002F, U+003A-0040, U+005B-0060, U+007B-007E, U+2000-2BFF, U+E000-F8FF;
+ }
+}
 @theme inline { --font-sans: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif; }
 body { font-family: "Summer Symbols", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif; }
 html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer", sans-serif; }
