@@ -466,15 +466,21 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 
 /* Compact contents use the same scale as the study navigation. */
 .study-contents-panel { width:640px; padding:20px 20px 16px; border-radius:24px; }
-.study-contents-panel > header { margin-bottom:4px; }
+.study-contents-panel > header { margin-bottom:4px; overflow-y:auto; scrollbar-gutter:stable; scrollbar-width:thin; }
+.study-contents-panel .study-panel-scroll { scrollbar-gutter:stable; }
+.study-contents-panel > header > button { width:56px; height:36px; flex-shrink:0; }
 .study-contents-panel h2 { font-size:15px; font-weight:500; }
 .study-contents-breadcrumb { display:flex; justify-content:space-between; gap:12px; margin:0 0 6px; color:#9487a6; font-size:11px; }
 .study-contents-breadcrumb button { display:flex; align-items:center; gap:4px; min-height:32px; min-width:0; text-align:left; }
+.study-contents-breadcrumb > button:last-child { width:56px; flex-shrink:0; justify-content:center; }
+.study-contents-back-symbol { display:inline-flex; width:12px; flex-shrink:0; justify-content:flex-start; font-size:13px; }
 .study-contents-count { margin:4px 0; color:#a399af; font-size:11px; }
 .study-contents .study-tree-row { min-height:44px; gap:8px; border-radius:0; }
 .study-contents .study-tree-name { min-height:44px; gap:8px; padding:6px 0; font-size:14px; cursor:pointer; }
 .study-contents .study-tree-name > .study-symbol { font-size:18px; width:16px; }
-.study-contents .study-tree-name > small { margin-left:auto; padding-right:0; white-space:nowrap; color:#a399af; font-size:10px; }
+.study-contents .study-contents-title-line { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; }
+.study-contents-title-line > span { min-width:0; overflow-wrap:anywhere; white-space:normal; }
+.study-contents-title-line > .study-contents-meta { margin:0; padding:0; white-space:nowrap; color:#a399af; font-size:10px; font-weight:400; }
 .study-contents .study-contents-label { display:flex; flex:1; flex-direction:column; gap:3px; white-space:normal; overflow:visible; }
 .study-contents .study-contents-label > span { white-space:normal; overflow-wrap:anywhere; font-weight:400; line-height:1.4; }
 .study-contents-label > small { font-size:10px; color:#a399af; font-weight:400; }
@@ -484,7 +490,7 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-contents-heading > div { flex:1; min-width:0; }
 .study-contents-heading h3 { font-size:17px; font-weight:400; overflow-wrap:anywhere; }
 .study-contents-heading p { margin-top:4px; font-size:12px; color:#a399af; }
-.study-contents .study-tree-row > button:not(.study-tree-name) { width:32px; height:36px; }
+.study-contents .study-tree-row > button:not(.study-tree-name) { width:56px; height:36px; }
 .study-contents-own { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; margin:4px 0; border-radius:8px; background:#f7f3fb; color:#9380aa; font-size:12px; }
 .study-contents-own small { margin-left:auto; font-size:10px; }
 .study-contents-footer { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; padding-top:10px; border-top:1px solid #eee9f2; }
