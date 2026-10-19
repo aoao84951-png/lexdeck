@@ -36,7 +36,7 @@ export function useTreeDrag(root:RefObject<HTMLElement|null>,enabled:boolean,cha
   };
   const tick=()=>{
    if(!active)return;
-   const scroll=panel.querySelector<HTMLElement>('.study-panel-scroll');
+   const scroll=panel.querySelector<HTMLElement>('.study-panel-scroll')||panel.closest<HTMLElement>('.study-panel-scroll');
    if(scroll){const rect=scroll.getBoundingClientRect();if(x>=rect.left&&x<=rect.right){const speed=y<rect.top+48?-Math.min(12,(rect.top+48-y)/4):y>rect.bottom-48?Math.min(12,(y-rect.bottom+48)/4):0;scroll.scrollTop+=speed;}}
    locate();frame=requestAnimationFrame(tick);
   };

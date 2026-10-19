@@ -463,3 +463,39 @@ html[data-lex-font="summer"] body { --font-sans: "Summer Symbols", "Lex Summer",
 .study-add-destination[aria-current="location"] { padding-inline: 12px; border-radius: 12px; background: #f0ebfa; border-color: transparent; color: #69567f; font-weight: 600; }
 .study-add-path { min-width: 0; overflow-wrap: anywhere; }
 .study-add-current { flex-shrink: 0; margin-left: auto; white-space: nowrap; color: #827197; font-size: 10px; font-weight: 500; }
+
+/* Contents: one level at a time, with editing kept beside its item. */
+.study-contents-panel { width: 760px; padding: 24px 26px 20px; border-radius: 28px; }
+.study-contents-breadcrumb { display:flex; justify-content:space-between; gap:16px; margin:8px 0 22px; color:#9487a6; font-size:14px; }
+.study-contents-breadcrumb button { display:flex; align-items:center; gap:4px; min-width:0; text-align:left; }
+.study-contents-count { margin:8px 0 12px; color:#a399af; font-size:14px; }
+.study-contents .study-tree-row { min-height:76px; gap:12px; border-radius:0; }
+.study-contents .study-tree-name { min-height:76px; gap:12px; padding:15px 0; font-size:17px; cursor:pointer; }
+.study-contents .study-tree-name > small { margin-left:auto; white-space:nowrap; color:#a399af; font-size:13px; }
+.study-contents .study-contents-label { display:flex; flex-direction:column; gap:7px; white-space:normal; overflow:visible; }
+.study-contents-label > span { white-space:normal; overflow-wrap:anywhere; }
+.study-contents-label > small { font-size:13px; color:#a399af; font-weight:400; }
+.study-contents-item { border-bottom:1px solid #eee9f2; }
+.study-contents-heading { margin-bottom:12px; }
+.study-contents-heading > .study-symbol { font-size:30px; color:#a08ab9; }
+.study-contents-heading > div { flex:1; min-width:0; }
+.study-contents-heading h3 { font-size:22px; overflow-wrap:anywhere; }
+.study-contents-heading p { margin-top:5px; font-size:14px; color:#a399af; }
+.study-contents-own { display:flex; align-items:center; gap:10px; width:100%; padding:14px; margin:8px 0; border-radius:12px; background:#f7f3fb; color:#9380aa; }
+.study-contents-own small { margin-left:auto; }
+.study-contents-footer { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; padding-top:20px; }
+.study-contents-footer button { display:flex; align-items:center; justify-content:center; gap:9px; min-height:48px; padding:12px 25px; border-radius:14px; background:#f7f3fb; color:#927ba9; font-size:15px; }
+.study-contents .study-inline-actions { margin:4px 0 14px; padding:12px; border-radius:16px; background:#faf8fc; border-color:#ebe4f1; color:#8e7b9f; }
+.study-contents .study-inline-tools button { min-height:36px; padding:6px 9px; font-size:13px; }
+.study-contents .study-inline-actions input,.study-contents .study-inline-actions select { padding:10px; border-radius:10px; border-color:#e5ddec; }
+.study-contents .study-inline-actions footer { margin-top:12px; }
+.study-contents .study-inline-actions footer button { min-height:38px; }
+@media(max-width:639px) {
+ .study-contents-panel { padding:20px 18px 18px; }
+ .study-contents .study-tree-row { gap:6px; }
+ .study-contents .study-tree-name { font-size:16px; gap:8px; }
+ .study-contents .study-tree-name > small { font-size:11px; }
+ .study-contents-heading h3 { font-size:20px; }
+ .study-contents-footer button { flex:1; padding:12px; font-size:14px; }
+ .study-contents .study-inline-tools button { padding:6px; }
+}
