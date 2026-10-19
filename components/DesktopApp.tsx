@@ -29,6 +29,8 @@ type Subject = {
 };
 
 type Chapter = {
+  coverImage?: string;
+  isBook?: boolean;
   icon?: string;
   desc?: string;
     id: string;
@@ -1346,10 +1348,10 @@ useEffect(() => {
             const direction = action.kind === "up" ? -1 : 1;
             if (action.subject) moveSubjectOrder(action.id, direction); else moveChapterOrder(action.id, direction);
           } else if (action.kind === "add") {
-            const id = uid(); setChapters(prev => [...prev, {id, subjectId:sid, parentId:action.subject?null:action.id, title:action.title!, type:action.type, icon:action.icon, desc:action.desc}]);
+            const id = uid(); setChapters(prev => [...prev, {id, subjectId:sid, parentId:action.subject?null:action.id, title:action.title!, type:action.type, icon:action.icon, desc:action.desc, coverImage:action.coverImage, isBook:action.isBook}]);
           } else if (action.kind === "edit") {
             if (action.subject) setSubjects(prev => prev.map(s => s.id===action.id?{...s,name:action.title!,icon:action.icon,desc:action.desc}:s));
-            else setChapters(prev => prev.map(c => c.id===action.id?{...c,title:action.title!,icon:action.icon,desc:action.desc}:c));
+            else setChapters(prev => prev.map(c => c.id===action.id?{...c,title:action.title!,icon:action.icon,desc:action.desc,coverImage:action.coverImage,isBook:action.isBook}:c));
           } else if (action.kind === "move") {
             const destination = action.targetSubjectId || sid;
             if (action.subject && destination === sid) return;
@@ -1442,7 +1444,7 @@ useEffect(() => {
           parentId: folderParentId,
           title: data.name,
           type: "folder",
-          color: data.color, icon: data.icon, desc: data.desc,
+          color: data.color, icon: data.icon, desc: data.desc, coverImage: data.coverImage, isBook: data.isBook,
         },
       ]);
 
