@@ -1,5 +1,26 @@
 # Gonglog database
 
+## Retirement completed (2026-11-01, Asia/Seoul)
+
+After user confirmation and a fresh field-by-field comparison, the original
+`public.ox_data` and `public.law_articles` tables were dropped with `RESTRICT`.
+Both are absent from Supabase. The shared project and the three voca tables
+(`vocab_data`, `azure_tts_audio`, `azure_tts_usage`) remain; their row counts
+were unchanged (1, 142, and 2 respectively). Production read/write, concurrent
+save conflict handling, law lookup, and direct-client DB denial passed again
+after deletion.
+
+Private data/structure backups and verification reports are retained outside
+Git in `~/.codex/backups/gonglog/before-retirement-20261101/`.
+Supabase credentials have been removed from lexdeck Vercel environments and
+the local application environment. Shared Supabase account credentials were
+not revoked because other apps use the project.
+
+The source-reading migration commands below are historical: the source tables
+no longer exist. For ongoing verification, use the API verification script
+with the retained backup directory. Do not recreate source tables as part of
+normal application operation.
+
 Production runs on Vercel; the database is Cloud Firestore in Firebase project
 `gonglog-5eac1`, region `asia-northeast3` (Seoul). The Firebase project display name
 is `gonglog`. `vocab_data`, `azure_tts_audio` and `azure_tts_usage` belong to the
