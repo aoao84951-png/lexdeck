@@ -11,7 +11,11 @@ export function StudyStorageStatus({ error }: { error?: string }) {
         const link = document.createElement("a"); link.href = url; link.download = "gonglog-recovery.json"; link.click();
         URL.revokeObjectURL(url);
       }}>변경 내용 내려받기</button>
-      <button type="button" onClick={() => window.location.reload()}>다시 불러오기</button>
+      <button type="button" onClick={() => {
+        if (localStorage.getItem("gonglog-unsaved-study-data") && !window.confirm("변경 내용을 내려받으셨나요? 계속하면 이 기기의 임시 변경 내용을 지우고 서버 데이터를 불러옵니다.")) return;
+        localStorage.removeItem("gonglog-unsaved-study-data");
+        window.location.reload();
+      }}>서버 데이터 다시 불러오기</button>
     </>}
   </div>;
 }

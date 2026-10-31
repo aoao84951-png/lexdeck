@@ -11,6 +11,7 @@ export function useStudyPersistence<T extends Data>(data: T, hydrate: (data: T) 
   const revision = useRef<number | null>(null);
   const saved = useRef("");
   const failed = useRef(false);
+  const inFlight = useRef(0);
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flush = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -23,6 +24,15 @@ export function useStudyPersistence<T extends Data>(data: T, hydrate: (data: T) 
       revision.current = result.revision;
       const { subjects, chapters, questions } = result.data;
       saved.current = JSON.stringify({ subjects, chapters, questions });
+      try {
+        const recovery = localStorage.getItem(recoveryKey);
+        if (recovery && recovery !== saved.current) {
+          failed.current = true;
+          setStatus({ ready: false, error: "이전 창의 저장되지 않은 변경 내용이 있습니다. 먼저 내려받아 보관해 주세요.", saving: false });
+          return;
+        }
+        if (recovery) localStorage.removeItem(recoveryKey);
+      } catch { /* Browser-local recovery may be unavailable. */ }
       hydrateRef.current(result.data);
       setStatus({ ready: true, error: "", saving: false });
     }).catch(error => {
@@ -44,6 +54,7 @@ export function useStudyPersistence<T extends Data>(data: T, hydrate: (data: T) 
     if (pending.current) clearTimeout(pending.current);
     flush.current = () => {
       flush.current = null;
+      inFlight.current += 1;
       saves = saves.then(async () => {
         if (failed.current) return;
         const response = await fetch("/api/study-data", {
@@ -58,13 +69,13 @@ export function useStudyPersistence<T extends Data>(data: T, hydrate: (data: T) 
       }).catch(error => {
         failed.current = true;
         setStatus(previous => ({ ...previous, error: String(error), saving: false }));
-      });
+      }).finally(() => { inFlight.current -= 1; });
     };
     pending.current = setTimeout(() => flush.current?.(), 700);
   }, [subjects, chapters, questions, status.ready]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
-      if (flush.current || failed.current) { event.preventDefault(); flush.current?.(); }
+      if (flush.current || inFlight.current > 0 || failed.current) { event.preventDefault(); flush.current?.(); }
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
