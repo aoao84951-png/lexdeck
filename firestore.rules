@@ -1,0 +1,7 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only the server's scoped IAM service account accesses application data.
+    match /{document=**} { allow read, write: if false; }
+  }
+}

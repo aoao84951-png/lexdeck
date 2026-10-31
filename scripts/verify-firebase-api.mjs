@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+if (!process.argv[3]) throw Error('Usage: node scripts/verify-firebase-api.mjs BASE_URL VERIFIED_BACKUP_DIRECTORY');
+const base = process.argv[2] || 'http://localhost:3100';
+const source = JSON.parse(await readFile(resolve(process.argv[3], 'ox_data.json'),'utf8'))[0].data;
+const response = await fetch(base+'/api/study-data'); assert.equal(response.status,200);
+const state = await response.json(); assert.deepEqual(state.data,source);
+const put = (data, revision, origin=base) => fetch(base+'/api/study-data',{method:'PUT',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify({data,revision})});
+assert.equal((await put(state.data,state.revision,'https://other.example')).status,403);
+assert.equal((await put({subjects:[]},state.revision)).status,400);
+const results=await Promise.all([put(state.data,state.revision),put(state.data,state.revision)]);
+assert.deepEqual(results.map(r=>r.status).sort(),[200,409]);
+const final=await (await fetch(base+'/api/study-data')).json();assert.deepEqual(final.data,source);assert.equal(final.revision,state.revision+1);
+const law=JSON.parse(await readFile(resolve(process.argv[3], 'law_articles.json'),'utf8'))[0];
+const lookup=await (await fetch(base+'/api/law-link?'+new URLSearchParams({lawName:law.law_name,articleNo:law.article_no}))).json();assert.equal(lookup.success,true);assert.deepEqual(lookup.article,law);
+const unauth=await fetch('https://firestore.googleapis.com/v1/projects/gonglog-5eac1/databases/(default)/documents/study_state/current');assert.equal(unauth.status,403);
+console.log('PASS: exact state, same-data save, concurrent conflict, invalid payload, origin protection, exact law lookup, direct DB access denied');

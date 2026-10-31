@@ -1,10 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { upsertLaws } from "@/app/lib/firebase-data";
 
 const LAW_API_KEY = process.env.LAW_API_KEY!;
 
@@ -123,18 +118,7 @@ export async function GET() {
       });
     }
 
-    const { error } = await supabase
-      .from("law_articles")
-      .upsert(rows, {
-        onConflict: "article_key",
-      });
-
-    if (error) {
-      return NextResponse.json({
-        success: false,
-        error,
-      });
-    }
+    await upsertLaws(rows);
 
     return NextResponse.json({
       success: true,

@@ -15,7 +15,8 @@ import EditorToolbar from "./EditorToolbar";
 import { useEscapeClose } from "./useEscapeClose";
 import { useEditorViewport } from "./useEditorViewport";
 import { FontSwitcher } from "./FontPreference";
-import { supabase } from "@/app/lib/supabase";
+import { useStudyPersistence } from "./useStudyPersistence";
+import { StudyStorageStatus } from "./StudyStorageStatus";
 
 type Answer = "O" | "X";
 type Screen = "home" | "subjects" | "chapters" | "questions" | "detail";
@@ -358,7 +359,7 @@ export default function MobileApp() {
   const [lawArticle, setLawArticle] = useState<LawArticle | null>(null);
   const lawCacheRef = useRef<Record<string, LawArticle>>({});
 
-  const loadedRef = useRef(false);
+
   const STORAGE_KEY = "lexdeck-navigation-state";
 
   const isHistoryMoving = useRef(false);
@@ -481,60 +482,11 @@ export default function MobileApp() {
 
 
 
-  useEffect(() => {
-    const loadData = async () => {
-      const { data, error } = await supabase
-        .from("ox_data")
-        .select("*")
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error(error);
-        loadedRef.current = true;
-        return;
-      }
-
-      if (data?.data) {
-        setSubjects(data.data.subjects ?? []);
-        setChapters(data.data.chapters ?? []);
-        setQuestions(data.data.questions ?? []);
-      }
-
-      loadedRef.current = true;
-    };
-
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (!loadedRef.current) return;
-
-    const save = async () => {
-      const payload = {
-        subjects,
-        chapters,
-        questions,
-      };
-
-      const { data: existing } = await supabase
-        .from("ox_data")
-        .select("id")
-        .limit(1)
-        .maybeSingle();
-
-      if (existing?.id) {
-        await supabase
-          .from("ox_data")
-          .update({ data: payload })
-          .eq("id", existing.id);
-      } else {
-        await supabase.from("ox_data").insert({ data: payload });
-      }
-    };
-
-    save();
-  }, [subjects, chapters, questions]);
+  const storage = useStudyPersistence({ subjects, chapters, questions }, data => {
+    setSubjects(data.subjects);
+    setChapters(data.chapters);
+    setQuestions(data.questions);
+  });
 
   const selectedSubject = subjects.find((s) => s.id === subjectId);
   const selectedChapter = chapters.find((c) => c.id === chapterId);
@@ -945,6 +897,7 @@ export default function MobileApp() {
 
   return (
     <>
+      {(!storage.ready || storage.error) && <StudyStorageStatus error={storage.error} />}
       <style jsx global>{`
         .mobile-scrollbar-hide {
           -ms-overflow-style: none;

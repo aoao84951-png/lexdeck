@@ -1,19 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { findLaw, upsertLaws } from "@/app/lib/firebase-data";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LAW_API_KEY = process.env.LAW_API_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !LAW_API_KEY) {
-  throw new Error("필수 환경변수 누락");
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 const fetchLawJson = async (url: string) => {
   const urls = [
@@ -221,12 +213,7 @@ export async function GET(req: NextRequest) {
     const normalizedLawName = normalizeLawName(lawName);
     const normalizedArticleNo = normalizeArticleNo(articleNo);
 
-    const { data: existing } = await supabase
-      .from("law_articles")
-      .select("*")
-      .eq("law_name", normalizedLawName)
-      .eq("article_no", normalizedArticleNo)
-      .maybeSingle();
+    const existing = await findLaw(normalizedLawName, normalizedArticleNo);
 
     if (existing) {
       return json({
@@ -339,19 +326,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const { error } = await supabase
-      .from("law_articles")
-      .upsert(uniqueRows, {
-        onConflict: "article_key",
-      });
-
-    if (error) {
-      return json({
-        success: false,
-        message: "DB 저장 실패",
-        error,
-      });
-    }
+    await upsertLaws(uniqueRows);
 
     const targetArticle = uniqueRows.find(
       (row) => row.article_no === normalizedArticleNo
